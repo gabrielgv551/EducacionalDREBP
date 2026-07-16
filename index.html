@@ -13,14 +13,37 @@
       <h1>FinSim</h1>
     </div>
     <p class="tagline">DRE Gerencial · Balanço Patrimonial · Capital de Giro</p>
-    <nav class="main-nav" id="mainNav">
-      <button class="nav-btn active" data-tab="premissas">Painel de Premissas</button>
-      <button class="nav-btn" data-tab="dre">DRE Gerencial</button>
-      <button class="nav-btn" data-tab="balanco">Balanço</button>
-      <button class="nav-btn" data-tab="giro">Capital de Giro</button>
-      <button class="nav-btn" data-tab="aprender">Aprender</button>
+    <nav class="stepper" id="mainNav" aria-label="Etapas do fluxo financeiro">
+      <button class="nav-btn active" data-tab="premissas">
+        <span class="step-number">1</span>
+        <span class="step-label">Premissas</span>
+      </button>
+      <span class="step-arrow" aria-hidden="true">→</span>
+      <button class="nav-btn" data-tab="dre">
+        <span class="step-number">2</span>
+        <span class="step-label">DRE</span>
+      </button>
+      <span class="step-arrow" aria-hidden="true">→</span>
+      <button class="nav-btn" data-tab="balanco">
+        <span class="step-number">3</span>
+        <span class="step-label">Balanço</span>
+      </button>
+      <span class="step-arrow" aria-hidden="true">→</span>
+      <button class="nav-btn" data-tab="giro">
+        <span class="step-number">4</span>
+        <span class="step-label">Capital de Giro</span>
+      </button>
+      <span class="step-arrow learn" aria-hidden="true">→</span>
+      <button class="nav-btn learn" data-tab="aprender">
+        <span class="step-number">★</span>
+        <span class="step-label">Aprender</span>
+      </button>
     </nav>
   </header>
+
+  <div class="stepper-hint">
+    <p>Fluxo: <strong>Premissas</strong> alimentam a <strong>DRE</strong> → a DRE gera o <strong>Balanço</strong> (via Lucros Acumulados) → o Balanço e os prazos geram o <strong>Capital de Giro</strong>.</p>
+  </div>
 
   <main class="container">
     <!-- Painel de Premissas -->
@@ -103,6 +126,19 @@
         <h2>DRE Gerencial</h2>
         <p class="hint">A Demonstração do Resultado do Exercício em cascata.</p>
       </div>
+      <div class="card flow-diagram">
+        <div class="flow-step">Receita</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Deduções</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Rec. Líquida</div><span class="flow-arrow">→</span>
+        <div class="flow-step">CMV</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Lucro Bruto</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Despesas</div><span class="flow-arrow">→</span>
+        <div class="flow-step">EBITDA</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Deprec.</div><span class="flow-arrow">→</span>
+        <div class="flow-step">EBIT</div><span class="flow-arrow">→</span>
+        <div class="flow-step">IR/CSLL</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Lucro Líquido</div>
+      </div>
       <div class="grid-2">
         <div class="card">
           <h3>DRE (valores anuais)</h3>
@@ -127,6 +163,13 @@
       <div class="panel-header">
         <h2>Balanço Patrimonial</h2>
         <p class="hint">Ativo = Passivo + Patrimônio Líquido. O caixa é a conta de fechamento.</p>
+      </div>
+      <div class="card flow-diagram center">
+        <div class="flow-step">DRE</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Lucro Líquido</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Lucros Acumulados</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Patrimônio Líquido</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Balanço</div>
       </div>
       <div class="balance-sheet">
         <div class="card balanco-col">
@@ -170,6 +213,14 @@
       <div class="panel-header">
         <h2>Capital de Giro</h2>
         <p class="hint">Ciclo de Conversão de Caixa, NCG, CDG e Saldo de Tesouraria.</p>
+      </div>
+      <div class="card flow-diagram center">
+        <div class="flow-step">Balanço</div><span class="flow-arrow">→</span>
+        <div class="flow-step">PME + PMR − PMP</div><span class="flow-arrow">→</span>
+        <div class="flow-step">CCC</div><span class="flow-arrow">→</span>
+        <div class="flow-step">NCG</div><span class="flow-arrow">→</span>
+        <div class="flow-step">CDG</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Tesouraria</div>
       </div>
       <div class="grid-4" id="giroCards">
         <div class="card metric-card">
