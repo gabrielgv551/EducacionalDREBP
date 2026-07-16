@@ -523,7 +523,12 @@ body {
   left: 0;
   background: var(--bg-card);
   z-index: 2;
-  min-width: 180px;
+  min-width: 220px;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.15);
+}
+
+.monthly-dre-table thead th:first-child {
+  background: var(--accent);
 }
 
 .monthly-dre-table thead th {
