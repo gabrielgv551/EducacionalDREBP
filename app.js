@@ -71,6 +71,7 @@ function calculateDRE(s = state) {
     lucroBruto,
     despesasOperacionais,
     ebitda,
+    depreciacao: s.depreciacao,
     ebit,
     resultadoFinanceiro,
     laIR,
