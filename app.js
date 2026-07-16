@@ -195,20 +195,26 @@ function calculateBalancoMonthly(s = state) {
   const monthlyDRE = calculateDREMonthly(s);
   const daysInMonth = 30;
   let lucrosAcumulados = 0;
+  let caixa = s.caixaInicial;
+  const ncgInicial = (monthlyDRE[0].receitaLiquida * (s.pmr / daysInMonth))
+                   + (monthlyDRE[0].cmv * (s.pme / daysInMonth))
+                   - (monthlyDRE[0].cmv * (s.pmp / daysInMonth));
   return monthlyDRE.map((m) => {
     const contasReceber = m.receitaLiquida * (s.pmr / daysInMonth);
     const estoque = m.cmv * (s.pme / daysInMonth);
     const contasPagar = m.cmv * (s.pmp / daysInMonth);
+    const ncg = contasReceber + estoque - contasPagar;
     lucrosAcumulados += m.lucroLiquido;
+    caixa = s.caixaInicial + lucrosAcumulados - (ncg - ncgInicial);
     const ativoNaoCirculante = s.ativoNaoCirculanteValor;
     const passivoNaoCirculante = s.passivoNaoCirculanteValor;
     const capitalSocial = s.capitalSocialValor;
     const outrasObrigacoes = s.outrasObrigacoesValor;
-    const totalPassivoPL = contasPagar + outrasObrigacoes + passivoNaoCirculante + capitalSocial + lucrosAcumulados;
-    const ativoCirculanteExclCaixa = s.caixaInicial + contasReceber + estoque;
-    const caixa = totalPassivoPL - ativoCirculanteExclCaixa - ativoNaoCirculante;
-    const ativoCirculante = ativoCirculanteExclCaixa + caixa;
+    const ativoCirculante = caixa + contasReceber + estoque;
     const ativoTotal = ativoCirculante + ativoNaoCirculante;
+    const passivoCirculante = contasPagar + outrasObrigacoes;
+    const patrimonioLiquido = capitalSocial + lucrosAcumulados;
+    const totalPassivoPL = passivoCirculante + passivoNaoCirculante + patrimonioLiquido;
     return {
       month: m.month,
       caixa,
@@ -220,11 +226,11 @@ function calculateBalancoMonthly(s = state) {
       ativoTotal,
       contasPagar,
       outrasObrigacoes,
-      passivoCirculante: contasPagar + outrasObrigacoes,
+      passivoCirculante,
       passivoNaoCirculante,
       capitalSocial,
       lucrosAcumulados,
-      patrimonioLiquido: capitalSocial + lucrosAcumulados,
+      patrimonioLiquido,
       totalPassivoPL,
     };
   });
