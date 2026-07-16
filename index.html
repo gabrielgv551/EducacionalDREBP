@@ -198,28 +198,23 @@
           <div class="indicators" id="dreIndicators"></div>
         </div>
         <div class="card">
-          <h3>DRE (valores mensais)</h3>
-          <table class="dre-table" id="dreTableMonthly">
-            <tbody></tbody>
-          </table>
-          <div class="indicators" id="dreIndicatorsMonthly"></div>
+          <h3>Waterfall DRE</h3>
+          <div class="waterfall" id="dreWaterfall"></div>
         </div>
       </div>
-      <div class="card">
-        <h3>Waterfall DRE</h3>
-        <div class="waterfall" id="dreWaterfall"></div>
+      <div class="card monthly-table-card">
+        <h3>DRE (valores mensais)</h3>
+        <p class="hint">Valores projetados mês a mês com a sazonalidade configurada.</p>
+        <div class="monthly-table-wrap">
+          <table class="monthly-dre-table" id="monthlyDreTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
       <div class="card compare-card">
         <h3>Comparativo antes × depois</h3>
         <div class="compare-grid" id="compareDre"></div>
-      </div>
-      <div class="card calendar-section" id="calendarSection">
-        <div class="calendar-header">
-          <h3>📅 Evolução mensal da DRE</h3>
-          <button class="btn secondary" id="btnToggleCalendar">Mostrar</button>
-        </div>
-        <p class="hint">Valores projetados mês a mês com a sazonalidade configurada.</p>
-        <div class="monthly-grid hidden" id="monthlyGrid"></div>
       </div>
       <div class="card feedback" id="feedbackDre">
         <strong>Feedback DRE:</strong> <span></span>

@@ -497,56 +497,46 @@ body {
 
 .term:hover { border-bottom-style: solid; }
 
-.calendar-section { margin-top: 22px; }
+.monthly-table-card { margin-top: 22px; }
 
-.calendar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+.monthly-table-wrap { overflow-x: auto; margin-top: 16px; }
+
+.monthly-dre-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 900px;
 }
 
-.calendar-header h3 { margin: 0; }
-
-.monthly-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.monthly-grid.hidden { display: none; }
-
-.month-card {
-  background: #0f172a;
+.monthly-dre-table th,
+.monthly-dre-table td {
+  padding: 10px 8px;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.month-card h4 {
-  margin: 0 0 12px;
-  color: var(--accent);
-  font-size: 1.1rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
+.monthly-dre-table th:first-child,
+.monthly-dre-table td:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--bg-card);
+  z-index: 2;
+  min-width: 180px;
 }
 
-.month-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  font-size: 0.9rem;
+.monthly-dre-table thead th {
+  background: var(--accent);
+  color: #0f172a;
+  font-weight: 700;
 }
 
-.month-row:last-child { border-bottom: none; }
-.month-row .label { color: var(--text-muted); }
-.month-row .value { font-weight: 700; font-variant-numeric: tabular-nums; }
-.month-row.pos .value { color: var(--success); }
-.month-row.neg .value { color: var(--danger); }
-.month-row.total .value { color: var(--accent); }
+.monthly-dre-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+.monthly-dre-table tbody tr.total td { background: rgba(56,189,248,0.12); font-weight: 700; color: var(--accent); }
+.monthly-dre-table tbody tr.sub td { color: var(--text-muted); }
+.monthly-dre-table tbody tr.pos td:not(:first-child) { color: var(--success); }
+.monthly-dre-table tbody tr.neg td:not(:first-child) { color: var(--danger); }
 
 .app-footer { text-align: center; padding: 24px; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 32px; }
 
