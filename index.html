@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinSim — DRE, Balanço e Capital de Giro</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="logo">◈</span>
+      <h1>FinSim</h1>
+    </div>
+    <p class="tagline">DRE Gerencial · Balanço Patrimonial · Capital de Giro</p>
+    <nav class="main-nav" id="mainNav">
+      <button class="nav-btn active" data-tab="premissas">Painel de Premissas</button>
+      <button class="nav-btn" data-tab="dre">DRE Gerencial</button>
+      <button class="nav-btn" data-tab="balanco">Balanço</button>
+      <button class="nav-btn" data-tab="giro">Capital de Giro</button>
+      <button class="nav-btn" data-tab="aprender">Aprender</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- Painel de Premissas -->
+    <section id="tab-premissas" class="tab-panel active">
+      <div class="panel-header">
+        <h2>Painel de Premissas</h2>
+        <p class="hint">Ajuste os sliders e veja DRE, Balanço e Capital de Giro recalcularem em tempo real.</p>
+        <div class="panel-actions">
+          <button id="btnPadrao" class="btn secondary">Resetar padrão</button>
+          <button id="btnSalvar" class="btn primary">Salvar cenário</button>
+          <button id="btnComparar" class="btn">Comparar cenários</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Receita e Custos</h3>
+          <div class="input-group">
+            <label for="receitaBruta">Receita bruta anual (R$)</label>
+            <input type="range" id="receitaBruta" min="0" max="20000000" step="50000" />
+            <div class="input-value"><span id="valReceitaBruta"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="deducoes">Deduções/impostos sobre vendas (%)</label>
+            <input type="range" id="deducoes" min="0" max="35" step="0.5" />
+            <div class="input-value"><span id="valDeducoes"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="cmvPercent">CMV / custo dos serviços (%)</label>
+            <input type="range" id="cmvPercent" min="0" max="90" step="1" />
+            <div class="input-value"><span id="valCmvPercent"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="despesasFixas">Despesas operacionais fixas anuais (R$)</label>
+            <input type="range" id="despesasFixas" min="0" max="8000000" step="50000" />
+            <div class="input-value"><span id="valDespesasFixas"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="despesasVariaveis">Despesas variáveis (% da receita líquida)</label>
+            <input type="range" id="despesasVariaveis" min="0" max="40" step="0.5" />
+            <div class="input-value"><span id="valDespesasVariaveis"></span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Prazos e Sazonalidade</h3>
+          <div class="input-group">
+            <label for="pmr">Prazo Médio de Recebimento (PMR, dias)</label>
+            <input type="range" id="pmr" min="0" max="180" step="1" />
+            <div class="input-value"><span id="valPmr"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="pme">Prazo Médio de Estoque (PME, dias)</label>
+            <input type="range" id="pme" min="0" max="180" step="1" />
+            <div class="input-value"><span id="valPme"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="pmp">Prazo Médio de Pagamento (PMP, dias)</label>
+            <input type="range" id="pmp" min="0" max="180" step="1" />
+            <div class="input-value"><span id="valPmp"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="depreciacao">Depreciação anual (R$)</label>
+            <input type="range" id="depreciacao" min="0" max="2000000" step="25000" />
+            <div class="input-value"><span id="valDepreciacao"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="sazonalidade">Crescimento mensal (%)</label>
+            <input type="range" id="sazonalidade" min="-5" max="10" step="0.5" />
+            <div class="input-value"><span id="valSazonalidade"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card feedback" id="feedbackPremissas">
+        <strong>Feedback:</strong> <span></span>
+      </div>
+    </section>
+
+    <!-- DRE -->
+    <section id="tab-dre" class="tab-panel">
+      <div class="panel-header">
+        <h2>DRE Gerencial</h2>
+        <p class="hint">A Demonstração do Resultado do Exercício em cascata.</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>DRE (valores anuais)</h3>
+          <table class="dre-table" id="dreTable">
+            <tbody></tbody>
+          </table>
+          <div class="indicators" id="dreIndicators"></div>
+        </div>
+        <div class="card">
+          <h3>Waterfall DRE</h3>
+          <div class="waterfall" id="dreWaterfall"></div>
+        </div>
+      </div>
+      <div class="card compare-card">
+        <h3>Comparativo antes × depois</h3>
+        <div class="compare-grid" id="compareDre"></div>
+      </div>
+    </section>
+
+    <!-- Balanço -->
+    <section id="tab-balanco" class="tab-panel">
+      <div class="panel-header">
+        <h2>Balanço Patrimonial</h2>
+        <p class="hint">Ativo = Passivo + Patrimônio Líquido. O caixa é a conta de fechamento.</p>
+      </div>
+      <div class="balance-sheet">
+        <div class="card balanco-col">
+          <h3>Ativo</h3>
+          <div class="balance-block" id="ativoCirculante">
+            <h4>Ativo Circulante</h4>
+            <div class="block-items"></div>
+          </div>
+          <div class="balance-block" id="ativoNaoCirculante">
+            <h4>Ativo Não Circulante</h4>
+            <div class="block-items"></div>
+          </div>
+          <div class="balance-total" id="totalAtivo"></div>
+        </div>
+        <div class="card balanco-col">
+          <h3>Passivo + PL</h3>
+          <div class="balance-block" id="passivoCirculante">
+            <h4>Passivo Circulante</h4>
+            <div class="block-items"></div>
+          </div>
+          <div class="balance-block" id="passivoNaoCirculante">
+            <h4>Passivo Não Circulante</h4>
+            <div class="block-items"></div>
+          </div>
+          <div class="balance-block" id="patrimonioLiquido">
+            <h4>Patrimônio Líquido</h4>
+            <div class="block-items"></div>
+          </div>
+          <div class="balance-total" id="totalPassivoPL"></div>
+        </div>
+      </div>
+      <div class="card trace-card">
+        <h3>Rastreabilidade</h3>
+        <p>Clique em uma conta do balanço para ver qual premissa a gera.</p>
+        <div id="traceInfo" class="trace-info">Selecione uma conta à esquerda ou à direita.</div>
+      </div>
+    </section>
+
+    <!-- Capital de Giro -->
+    <section id="tab-giro" class="tab-panel">
+      <div class="panel-header">
+        <h2>Capital de Giro</h2>
+        <p class="hint">Ciclo de Conversão de Caixa, NCG, CDG e Saldo de Tesouraria.</p>
+      </div>
+      <div class="grid-4" id="giroCards">
+        <div class="card metric-card">
+          <div class="metric-label">Ciclo de Conversão de Caixa</div>
+          <div class="metric-value" id="metricCCC"></div>
+          <div class="metric-desc">PME + PMR − PMP</div>
+        </div>
+        <div class="card metric-card">
+          <div class="metric-label">Necessidade de Capital de Giro</div>
+          <div class="metric-value" id="metricNCG"></div>
+          <div class="metric-desc">ACO − PCO</div>
+        </div>
+        <div class="card metric-card">
+          <div class="metric-label">Capital de Giro Líquido</div>
+          <div class="metric-value" id="metricCDG"></div>
+          <div class="metric-desc">Financiamento disponível</div>
+        </div>
+        <div class="card metric-card">
+          <div class="metric-label">Saldo de Tesouraria</div>
+          <div class="metric-value" id="metricTesouraria"></div>
+          <div class="metric-desc">CDG − NCG</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Linha do Tempo do Ciclo de Caixa</h3>
+          <div class="timeline" id="timelineCCC"></div>
+        </div>
+        <div class="card">
+          <h3>Projeção de Caixa (12 meses)</h3>
+          <div class="chart-bars" id="cashChart"></div>
+        </div>
+      </div>
+      <div class="card scenarios">
+        <h3>Simulação de cenários</h3>
+        <p>"O que acontece se o PMP cair 10 dias?"</p>
+        <button id="btnSimPmp" class="btn primary">Simular: PMP −10 dias</button>
+        <button id="btnSimPmr" class="btn">Simular: PMR −10 dias</button>
+        <button id="btnSimPme" class="btn">Simular: PME +10 dias</button>
+        <div class="scenario-result" id="scenarioResult"></div>
+      </div>
+    </section>
+
+    <!-- Aprender -->
+    <section id="tab-aprender" class="tab-panel">
+      <div class="panel-header">
+        <h2>Aprender</h2>
+        <p class="hint">Conteúdo pedagógico, glossário, quiz e desafios.</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Glossário</h3>
+          <dl class="glossary" id="glossary"></dl>
+        </div>
+        <div class="card">
+          <h3>Quiz Rápido</h3>
+          <div id="quizContainer"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Desafios Guiados</h3>
+        <div class="challenges" id="challenges"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>FinSim — app educacional para finanças corporativas</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
