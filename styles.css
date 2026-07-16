@@ -521,15 +521,18 @@ body {
   text-align: left;
   position: sticky;
   left: 0;
-  background: var(--bg-card);
-  z-index: 2;
+  background: var(--bg-card) !important;
+  z-index: 3;
   min-width: 220px;
-  box-shadow: 2px 0 6px rgba(0,0,0,0.15);
 }
 
 .monthly-dre-table thead th:first-child {
-  background: var(--accent);
+  background: var(--accent) !important;
+  z-index: 4;
 }
+
+.monthly-dre-table tbody tr:nth-child(even) td:first-child { background: rgba(255,255,255,0.03) !important; }
+.monthly-dre-table tbody tr.total td:first-child { background: rgba(56,189,248,0.2) !important; }
 
 .monthly-dre-table thead th {
   background: var(--accent);
