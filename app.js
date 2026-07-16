@@ -14,6 +14,11 @@ const defaultState = {
   pmp: 30,
   depreciacao: 180_000,
   sazonalidade: 1.0,
+  caixaInicial: 500_000,
+  ativoNaoCirculanteValor: 1_500_000,
+  passivoNaoCirculanteValor: 1_000_000,
+  capitalSocialValor: 500_000,
+  outrasObrigacoesValor: 250_000,
 };
 
 let state = { ...defaultState };
@@ -38,6 +43,11 @@ const inputDefs = [
   ['pmp', 'valPmp', (v) => `${v} dias`],
   ['depreciacao', 'valDepreciacao', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.depreciacao) : formatCurrency(state.depreciacao)],
   ['sazonalidade', 'valSazonalidade', (v) => `${v > 0 ? '+' : ''}${v.toFixed(1).replace('.', ',')}% / mês`],
+  ['caixaInicial', 'valCaixaInicial', formatCurrency],
+  ['ativoNaoCirculanteValor', 'valAtivoNaoCirculante', formatCurrency],
+  ['passivoNaoCirculanteValor', 'valPassivoNaoCirculante', formatCurrency],
+  ['capitalSocialValor', 'valCapitalSocial', formatCurrency],
+  ['outrasObrigacoesValor', 'valOutrasObrigacoes', formatCurrency],
 ];
 
 function updateInputDisplays() {
@@ -149,14 +159,14 @@ function calculateBalanco(dre, s = state) {
   const compras = dre.cmv;
   const contasPagar = compras * (s.pmp / 365);
 
-  const ativoNaoCirculante = s.receitaBruta * 0.30;
-  const passivoNaoCirculante = s.receitaBruta * 0.20;
-  const capitalSocial = s.receitaBruta * 0.10;
+  const ativoNaoCirculante = s.ativoNaoCirculanteValor;
+  const passivoNaoCirculante = s.passivoNaoCirculanteValor;
+  const capitalSocial = s.capitalSocialValor;
   const lucrosAcumulados = dre.lucroLiquido;
-  const outrasObrigacoes = s.receitaBruta * 0.05;
+  const outrasObrigacoes = s.outrasObrigacoesValor;
 
   const totalPassivoPL = contasPagar + outrasObrigacoes + passivoNaoCirculante + capitalSocial + lucrosAcumulados;
-  const ativoCirculanteExclCaixa = contasReceber + estoque;
+  const ativoCirculanteExclCaixa = s.caixaInicial + contasReceber + estoque;
   const caixa = totalPassivoPL - ativoCirculanteExclCaixa - ativoNaoCirculante;
 
   const ativoCirculante = ativoCirculanteExclCaixa + caixa;
@@ -164,6 +174,7 @@ function calculateBalanco(dre, s = state) {
 
   return {
     caixa,
+    caixaInicial: s.caixaInicial,
     contasReceber,
     estoque,
     ativoCirculante,
@@ -323,9 +334,10 @@ function updateBalanco() {
   const b = calculateBalanco(dre);
   const data = [
     ['Caixa', b.caixa, 'caixa', 'Caixa calculado como conta de fechamento: Ativo = Passivo + PL.'],
+    ['Caixa Inicial', b.caixaInicial, 'caixaInicial', 'Saldo de caixa informado nas premissas do balanço.'],
     ['Contas a Receber', b.contasReceber, 'receber', `Receita Líquida × PMR ÷ 365 = ${formatCurrency(dre.receitaLiquida)} × ${state.pmr} ÷ 365`],
     ['Estoque', b.estoque, 'estoque', `CMV × PME ÷ 365 = ${formatCurrency(dre.cmv)} × ${state.pme} ÷ 365`],
-    ['Ativo Não Circulante', b.ativoNaoCirculante, 'anc', 'Imobilizado estimado como 30% da receita bruta.'],
+    ['Ativo Não Circulante', b.ativoNaoCirculante, 'anc', 'Valor informado nas premissas do balanço.'],
   ];
 
   const ativoItems = data.slice(0, 3);
@@ -337,11 +349,11 @@ function updateBalanco() {
 
   const passivoItems = [
     ['Contas a Pagar', b.contasPagar, 'pagar', `CMV × PMP ÷ 365 = ${formatCurrency(dre.cmv)} × ${state.pmp} ÷ 365`],
-    ['Outras Obrigações', b.outrasObrigacoes, 'outras', 'Obrigações operacionais estimadas como 5% da receita bruta.'],
+    ['Outras Obrigações', b.outrasObrigacoes, 'outras', 'Valor informado nas premissas do balanço.'],
   ];
-  const pnpItems = [['Passivo Não Circulante', b.passivoNaoCirculante, 'pnp', 'Empréstimos de longo prazo estimados como 20% da receita bruta.']];
+  const pnpItems = [['Passivo Não Circulante', b.passivoNaoCirculante, 'pnp', 'Valor informado nas premissas do balanço.']];
   const plItems = [
-    ['Capital Social', b.capitalSocial, 'cs', 'Capital social estimado como 10% da receita bruta.'],
+    ['Capital Social', b.capitalSocial, 'cs', 'Valor informado nas premissas do balanço.'],
     ['Lucros Acumulados', b.lucrosAcumulados, 'la', 'Lucro Líquido do exercício transferido para o PL.'],
   ];
 

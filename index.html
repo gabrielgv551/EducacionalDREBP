@@ -232,6 +232,36 @@
         <div class="flow-step">Patrimônio Líquido</div><span class="flow-arrow">→</span>
         <div class="flow-step">Balanço</div>
       </div>
+      <div class="card">
+        <h3>Premissas do Balanço</h3>
+        <div class="grid-2">
+          <div class="input-group">
+            <label for="caixaInicial">Caixa inicial (R$)</label>
+            <input type="range" id="caixaInicial" min="0" max="5000000" step="50000" />
+            <div class="input-value"><span id="valCaixaInicial"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="ativoNaoCirculanteValor">Ativo Não Circulante (R$)</label>
+            <input type="range" id="ativoNaoCirculanteValor" min="0" max="10000000" step="100000" />
+            <div class="input-value"><span id="valAtivoNaoCirculante"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="passivoNaoCirculanteValor">Passivo Não Circulante (R$)</label>
+            <input type="range" id="passivoNaoCirculanteValor" min="0" max="10000000" step="100000" />
+            <div class="input-value"><span id="valPassivoNaoCirculante"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="capitalSocialValor">Capital Social (R$)</label>
+            <input type="range" id="capitalSocialValor" min="0" max="5000000" step="50000" />
+            <div class="input-value"><span id="valCapitalSocial"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="outrasObrigacoesValor">Outras Obrigações (R$)</label>
+            <input type="range" id="outrasObrigacoesValor" min="0" max="2000000" step="25000" />
+            <div class="input-value"><span id="valOutrasObrigacoes"></span></div>
+          </div>
+        </div>
+      </div>
       <div class="balance-sheet">
         <div class="card balanco-col">
           <h3>Ativo</h3>
