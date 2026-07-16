@@ -557,8 +557,13 @@ function initTabs() {
   });
 }
 
+function safeAddListener(id, event, handler) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(event, handler);
+}
+
 function initActions() {
-  document.getElementById('btnPadrao').addEventListener('click', () => {
+  safeAddListener('btnPadrao', 'click', () => {
     state = { ...defaultState };
     inputDefs.forEach(([key]) => {
       inputs[key].value = state[key];
@@ -567,13 +572,13 @@ function initActions() {
     updateAll();
   });
 
-  document.getElementById('btnSalvar').addEventListener('click', () => {
+  safeAddListener('btnSalvar', 'click', () => {
     savedScenario = { ...state };
     renderCompareDRE(calculateDRE());
     alert('Cenário salvo! Vá até o módulo DRE para ver o comparativo.');
   });
 
-  document.getElementById('btnExportar').addEventListener('click', () => {
+  safeAddListener('btnExportar', 'click', () => {
     const dre = calculateDRE();
     const b = calculateBalanco(dre);
     const g = calculateGiro(b);
@@ -620,13 +625,14 @@ function initActions() {
     win.document.close();
   });
 
-  document.getElementById('btnComparar').addEventListener('click', () => {
+  safeAddListener('btnComparar', 'click', () => {
     document.querySelector('[data-tab="dre"]').click();
   });
 
-  document.getElementById('btnSimPmp').addEventListener('click', () => simulateScenario('pmp', -10));
-  document.getElementById('btnSimPmr').addEventListener('click', () => simulateScenario('pmr', -10));
-  document.getElementById('btnSimPme').addEventListener('click', () => simulateScenario('pme', 10));
+  safeAddListener('btnSimPmp', 'click', () => simulateScenario('pmp', -10));
+  safeAddListener('btnSimPmr', 'click', () => simulateScenario('pmr', -10));
+  safeAddListener('btnSimPme', 'click', () => simulateScenario('pme', 10));
+
   document.querySelectorAll('.next-btn').forEach((btn) => {
     btn.addEventListener('click', () => document.querySelector(`[data-tab="${btn.dataset.next}"]`).click());
   });
