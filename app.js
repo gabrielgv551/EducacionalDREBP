@@ -109,6 +109,40 @@ function calculateDRE(s = state) {
   };
 }
 
+function calculateDREMonthly(s = state) {
+  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const baseReceita = s.receitaBruta / 12;
+  const baseDespesasFixas = s.despesasFixas / 12;
+  const baseDepreciacao = s.depreciacao / 12;
+  return months.map((month, i) => {
+    const factor = Math.pow(1 + s.sazonalidade / 100, i);
+    const receitaBruta = baseReceita * factor;
+    const receitaLiquida = receitaBruta * (1 - s.deducoes / 100);
+    const cmv = receitaLiquida * (s.cmvPercent / 100);
+    const lucroBruto = receitaLiquida - cmv;
+    const despesasVariaveis = receitaLiquida * (s.despesasVariaveis / 100);
+    const despesasOperacionais = baseDespesasFixas + despesasVariaveis;
+    const ebitda = lucroBruto - despesasOperacionais;
+    const ebit = ebitda - baseDepreciacao;
+    const laIR = ebit;
+    const ir = Math.max(0, laIR * 0.34);
+    const lucroLiquido = laIR - ir;
+    return {
+      month,
+      receitaBruta,
+      receitaLiquida,
+      cmv,
+      lucroBruto,
+      despesasOperacionais,
+      ebitda,
+      depreciacao: baseDepreciacao,
+      ebit,
+      ir,
+      lucroLiquido,
+    };
+  });
+}
+
 function calculateBalanco(dre, s = state) {
   const contasReceber = dre.receitaLiquida * (s.pmr / 365);
   const estoque = dre.cmv * (s.pme / 365);
@@ -850,12 +884,61 @@ function initInlineTooltips() {
   });
 }
 
+function renderCalendarDre() {
+  const monthly = calculateDREMonthly();
+  const head = document.querySelector('#calendarDreTable thead');
+  const tbody = document.querySelector('#calendarDreTable tbody');
+
+  head.innerHTML = `<tr><th>Descrição</th>${monthly.map((m) => `<th>${m.month}</th>`).join('')}<th>Total Anual</th></tr>`;
+
+  const rowDefs = [
+    { key: 'receitaBruta', label: 'Receita Bruta', cls: 'pos' },
+    { key: 'deducoes', label: '(−) Deduções/Impostos', cls: 'neg', get: (m) => -(m.receitaBruta - m.receitaLiquida) },
+    { key: 'receitaLiquida', label: 'Receita Líquida', cls: 'total' },
+    { key: 'cmv', label: '(−) CMV', cls: 'neg', get: (m) => -m.cmv },
+    { key: 'lucroBruto', label: 'Lucro Bruto', cls: 'sub' },
+    { key: 'despesasOperacionais', label: '(−) Despesas Operacionais', cls: 'neg', get: (m) => -m.despesasOperacionais },
+    { key: 'ebitda', label: 'EBITDA', cls: 'sub' },
+    { key: 'depreciacao', label: '(−) Depreciação', cls: 'neg', get: (m) => -m.depreciacao },
+    { key: 'ebit', label: 'EBIT', cls: 'sub' },
+    { key: 'ir', label: '(−) IR/CSLL', cls: 'neg', get: (m) => -m.ir },
+    { key: 'lucroLiquido', label: 'Lucro Líquido', cls: 'total' },
+  ];
+
+  tbody.innerHTML = rowDefs
+    .map((r) => {
+      const monthlyValues = monthly.map((m) => {
+        const v = r.get ? r.get(m) : m[r.key];
+        return `<td>${formatCurrency(v)}</td>`;
+      }).join('');
+      const total = monthly.reduce((a, m) => a + (r.get ? r.get(m) : m[r.key]), 0);
+      return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}<td>${formatCurrency(total)}</td></tr>`;
+    })
+    .join('');
+}
+
+function initCalendarDre() {
+  const modal = document.getElementById('modalCalendarDre');
+  const btn = document.getElementById('btnCalendarDre');
+  const close = document.getElementById('btnCloseCalendar');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    renderCalendarDre();
+    modal.classList.add('open');
+  });
+  close.addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('open');
+  });
+}
+
 function init() {
   initOnboarding();
   initTabs();
   initViewToggle();
   initInputs();
   initActions();
+  initCalendarDre();
   initInlineTooltips();
   initAprender();
   updateAll();

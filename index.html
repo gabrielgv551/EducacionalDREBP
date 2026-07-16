@@ -208,6 +208,7 @@
       <div class="card">
         <h3>Waterfall DRE</h3>
         <div class="waterfall" id="dreWaterfall"></div>
+        <button class="btn primary" id="btnCalendarDre" style="margin-top:16px">📅 Ver calendário mensal</button>
       </div>
       <div class="card compare-card">
         <h3>Comparativo antes × depois</h3>
@@ -387,6 +388,25 @@
       </div>
     </section>
   </main>
+
+  <!-- Modal Calendário Mensal DRE -->
+  <div class="modal-overlay" id="modalCalendarDre">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>DRE Mensal — Calendário 2026</h2>
+        <button class="modal-close" id="btnCloseCalendar">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="hint">Valores projetados mês a mês com a sazonalidade definida nas premissas.</p>
+        <div class="calendar-table-wrap">
+          <table class="calendar-dre" id="calendarDreTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <footer class="app-footer">
     <p>FinSim — app educacional para finanças corporativas</p>

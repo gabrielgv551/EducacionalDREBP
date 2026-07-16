@@ -497,6 +497,93 @@ body {
 
 .term:hover { border-bottom-style: solid; }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.92);
+  z-index: 90;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 1200px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 { margin: 0; color: var(--accent); font-size: 1.3rem; }
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 4px 10px;
+}
+
+.modal-close:hover { color: var(--text); }
+
+.modal-body { padding: 20px 24px; overflow-y: auto; }
+
+.calendar-table-wrap { overflow-x: auto; margin-top: 16px; }
+
+.calendar-dre {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 900px;
+}
+
+.calendar-dre th,
+.calendar-dre td {
+  padding: 10px 8px;
+  border: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.calendar-dre th:first-child,
+.calendar-dre td:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--bg-card);
+  z-index: 2;
+  min-width: 180px;
+}
+
+.calendar-dre thead th {
+  background: var(--accent);
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.calendar-dre tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+.calendar-dre tbody tr.total td { background: rgba(56,189,248,0.12); font-weight: 700; color: var(--accent); }
+.calendar-dre tbody tr.sub td { color: var(--text-muted); }
+.calendar-dre tbody tr.pos td:not(:first-child) { color: var(--success); }
+.calendar-dre tbody tr.neg td:not(:first-child) { color: var(--danger); }
+
 .app-footer { text-align: center; padding: 24px; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 32px; }
 
 @media print {
