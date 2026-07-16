@@ -359,6 +359,49 @@
           <div class="metric-desc">CDG − NCG</div>
         </div>
       </div>
+      <div class="card memo-card">
+        <h3>Memória de Cálculo</h3>
+        <p class="hint">Entenda o que cada indicador significa e como ele é calculado a partir das premissas.</p>
+        <div class="memo-list" id="memoCalculo">
+          <div class="memo-item">
+            <div class="memo-title">
+              <span class="memo-sigla">CCC</span>
+              <span class="memo-name">Ciclo de Conversão de Caixa</span>
+            </div>
+            <div class="memo-formula">PME + PMR − PMP</div>
+            <div class="memo-calc" id="memoCCC"></div>
+            <div class="memo-desc">Mede, em dias, quanto tempo o dinheiro fica preso no ciclo operacional. Inclui o estoque, as vendas a prazo e o prazo de pagamento a fornecedores. <strong>Quanto menor, melhor.</strong></div>
+          </div>
+          <div class="memo-item">
+            <div class="memo-title">
+              <span class="memo-sigla">NCG</span>
+              <span class="memo-name">Necessidade de Capital de Giro</span>
+            </div>
+            <div class="memo-formula">ACO − PCO</div>
+            <div class="memo-calc" id="memoNCG"></div>
+            <div class="memo-desc">É o valor que a empresa precisa de recursos para manter a operação girando. ACO = Ativo Circulante Operacional (contas a receber + estoque). PCO = Passivo Circulante Operacional (contas a pagar). <strong>NCG positiva significa que a operação consome caixa.</strong></div>
+          </div>
+          <div class="memo-item">
+            <div class="memo-title">
+              <span class="memo-sigla">CDG</span>
+              <span class="memo-name">Capital de Giro Líquido</span>
+            </div>
+            <div class="memo-formula">Caixa + Outras Obrigações (curto prazo)</div>
+            <div class="memo-calc" id="memoCDG"></div>
+            <div class="memo-desc">Representa os recursos disponíveis de curto prazo para financiar o giro. No nosso modelo, usamos caixa + outras obrigações como proxy do financiamento disponível.</div>
+          </div>
+          <div class="memo-item">
+            <div class="memo-title">
+              <span class="memo-sigla">Tesouraria</span>
+              <span class="memo-name">Saldo de Tesouraria</span>
+            </div>
+            <div class="memo-formula">CDG − NCG</div>
+            <div class="memo-calc" id="memoTesouraria"></div>
+            <div class="memo-desc">Mostra se o capital disponível (CDG) cobre a necessidade operacional (NCG). <strong>Positivo = folga financeira.</strong> <strong>Negativo = déficit que precisa ser financiado.</strong></div>
+          </div>
+        </div>
+      </div>
+
       <div class="card ccc-ruler-card">
         <h3>Régua Visual do Ciclo de Caixa</h3>
         <p class="hint">Veja por que <span class="term" data-term="CCC">CCC</span> = PME + PMR − PMP.</p>

@@ -92,30 +92,21 @@ function initInputs() {
 }
 
 function calculateDRE(s = state) {
-  const receitaLiquida = s.receitaBruta * (1 - s.deducoes / 100);
-  const cmv = receitaLiquida * (s.cmvPercent / 100);
-  const lucroBruto = receitaLiquida - cmv;
-  const despesasVariaveis = receitaLiquida * (s.despesasVariaveis / 100);
-  const despesasOperacionais = s.despesasFixas + despesasVariaveis;
-  const ebitda = lucroBruto - despesasOperacionais;
-  const ebit = ebitda - s.depreciacao;
-  const resultadoFinanceiro = 0;
-  const laIR = ebit - resultadoFinanceiro;
-  const ir = Math.max(0, laIR * 0.34);
-  const lucroLiquido = laIR - ir;
+  const monthly = calculateDREMonthly(s);
+  const sum = (key) => monthly.reduce((acc, m) => acc + m[key], 0);
   return {
-    receitaBruta: s.receitaBruta,
-    receitaLiquida,
-    cmv,
-    lucroBruto,
-    despesasOperacionais,
-    ebitda,
-    depreciacao: s.depreciacao,
-    ebit,
-    resultadoFinanceiro,
-    laIR,
-    ir,
-    lucroLiquido,
+    receitaBruta: sum('receitaBruta'),
+    receitaLiquida: sum('receitaLiquida'),
+    cmv: sum('cmv'),
+    lucroBruto: sum('lucroBruto'),
+    despesasOperacionais: sum('despesasOperacionais'),
+    ebitda: sum('ebitda'),
+    depreciacao: sum('depreciacao'),
+    ebit: sum('ebit'),
+    resultadoFinanceiro: 0,
+    laIR: sum('ebit'),
+    ir: sum('ir'),
+    lucroLiquido: sum('lucroLiquido'),
   };
 }
 
@@ -154,71 +145,44 @@ function calculateDREMonthly(s = state) {
 }
 
 function calculateBalanco(dre, s = state) {
-  const contasReceber = dre.receitaLiquida * (s.pmr / 365);
-  const estoque = dre.cmv * (s.pme / 365);
-  const compras = dre.cmv;
-  const contasPagar = compras * (s.pmp / 365);
-
-  const ativoNaoCirculante = s.ativoNaoCirculanteValor;
-  const passivoNaoCirculante = s.passivoNaoCirculanteValor;
-  const capitalSocial = s.capitalSocialValor;
-  const lucrosAcumulados = dre.lucroLiquido;
-  const outrasObrigacoes = s.outrasObrigacoesValor;
-
-  const totalPassivoPL = contasPagar + outrasObrigacoes + passivoNaoCirculante + capitalSocial + lucrosAcumulados;
-  const ativoCirculanteExclCaixa = s.caixaInicial + contasReceber + estoque;
-  const caixa = totalPassivoPL - ativoCirculanteExclCaixa - ativoNaoCirculante;
-
-  const ativoCirculante = ativoCirculanteExclCaixa + caixa;
-  const ativoTotal = ativoCirculante + ativoNaoCirculante;
-
-  return {
-    caixa,
-    caixaInicial: s.caixaInicial,
-    contasReceber,
-    estoque,
-    ativoCirculante,
-    ativoNaoCirculante,
-    ativoTotal,
-    contasPagar,
-    outrasObrigacoes,
-    passivoCirculante: contasPagar + outrasObrigacoes,
-    passivoNaoCirculante,
-    capitalSocial,
-    lucrosAcumulados,
-    patrimonioLiquido: capitalSocial + lucrosAcumulados,
-    totalPassivoPL,
-  };
+  const monthly = calculateBalancoMonthly(s);
+  return monthly[monthly.length - 1];
 }
 
 function calculateBalancoMonthly(s = state) {
   const monthlyDRE = calculateDREMonthly(s);
   const daysInMonth = 30;
-  let lucrosAcumulados = 0;
-  let caixa = s.caixaInicial;
-  const ncgInicial = (monthlyDRE[0].receitaLiquida * (s.pmr / daysInMonth))
-                   + (monthlyDRE[0].cmv * (s.pme / daysInMonth))
-                   - (monthlyDRE[0].cmv * (s.pmp / daysInMonth));
-  return monthlyDRE.map((m) => {
+  const m0 = monthlyDRE[0];
+  const cr0 = m0.receitaLiquida * (s.pmr / daysInMonth);
+  const est0 = m0.cmv * (s.pme / daysInMonth);
+  const cp0 = m0.cmv * (s.pmp / daysInMonth);
+  // O caixa inicial é o saldo de caixa do exercício anterior. Ele é financiado pelos lucros acumulados iniciais.
+  const lucrosAcumuladosIniciais = s.caixaInicial + cr0 + est0 + s.ativoNaoCirculanteValor
+    - cp0 - s.outrasObrigacoesValor - s.passivoNaoCirculanteValor - s.capitalSocialValor - m0.lucroLiquido;
+
+  return monthlyDRE.map((m, i) => {
     const contasReceber = m.receitaLiquida * (s.pmr / daysInMonth);
     const estoque = m.cmv * (s.pme / daysInMonth);
     const contasPagar = m.cmv * (s.pmp / daysInMonth);
-    const ncg = contasReceber + estoque - contasPagar;
-    lucrosAcumulados += m.lucroLiquido;
-    caixa = s.caixaInicial + lucrosAcumulados - (ncg - ncgInicial);
+    const lucroLiquidoAcumulado = monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0);
+    const lucrosAcumulados = lucrosAcumuladosIniciais + lucroLiquidoAcumulado;
+
     const ativoNaoCirculante = s.ativoNaoCirculanteValor;
     const passivoNaoCirculante = s.passivoNaoCirculanteValor;
     const capitalSocial = s.capitalSocialValor;
     const outrasObrigacoes = s.outrasObrigacoesValor;
-    const ativoCirculante = caixa + contasReceber + estoque;
-    const ativoTotal = ativoCirculante + ativoNaoCirculante;
+
     const passivoCirculante = contasPagar + outrasObrigacoes;
     const patrimonioLiquido = capitalSocial + lucrosAcumulados;
     const totalPassivoPL = passivoCirculante + passivoNaoCirculante + patrimonioLiquido;
+
+    const caixa = totalPassivoPL - (contasReceber + estoque + ativoNaoCirculante);
+    const ativoCirculante = caixa + contasReceber + estoque;
+    const ativoTotal = ativoCirculante + ativoNaoCirculante;
+
     return {
       month: m.month,
       caixa,
-      caixaInicial: s.caixaInicial,
       contasReceber,
       estoque,
       ativoCirculante,
@@ -230,6 +194,7 @@ function calculateBalancoMonthly(s = state) {
       passivoNaoCirculante,
       capitalSocial,
       lucrosAcumulados,
+      lucrosAcumuladosIniciais,
       patrimonioLiquido,
       totalPassivoPL,
     };
@@ -247,22 +212,7 @@ function calculateGiro(balanco, s = state) {
 }
 
 function projectCash(s = state) {
-  const monthly = [];
-  const base = s.receitaBruta / 12;
-  let caixa = 0;
-  for (let i = 1; i <= 12; i++) {
-    const receita = base * Math.pow(1 + s.sazonalidade / 100, i - 1);
-    const rl = receita * (1 - s.deducoes / 100);
-    const cmv = rl * (s.cmvPercent / 100);
-    const lucroBruto = rl - cmv;
-    const despesas = s.despesasFixas / 12 + rl * (s.despesasVariaveis / 100);
-    const ebitda = lucroBruto - despesas;
-    const ll = ebitda * (1 - 0.34);
-    const ncg = rl * (s.pmr / 365) + cmv * (s.pme / 365) - cmv * (s.pmp / 365);
-    caixa += ll - ncg;
-    monthly.push({ month: i, caixa });
-  }
-  return monthly;
+  return calculateBalancoMonthly(s).map((m, i) => ({ month: i + 1, caixa: m.caixa }));
 }
 
 function renderDreTable(tableId, indicatorsId, dre, divisor) {
@@ -378,9 +328,9 @@ function updateBalanco() {
   const dre = calculateDRE();
   const b = calculateBalanco(dre);
   const data = [
-    ['Caixa', b.caixa, 'caixa', 'Saldo de caixa calculado pelo fluxo acumulado: Caixa Inicial + Lucros Líquidos − Variação da NCG.'],
-    ['Contas a Receber', b.contasReceber, 'receber', `Receita Líquida × PMR ÷ 365 = ${formatCurrency(dre.receitaLiquida)} × ${state.pmr} ÷ 365`],
-    ['Estoque', b.estoque, 'estoque', `CMV × PME ÷ 365 = ${formatCurrency(dre.cmv)} × ${state.pme} ÷ 365`],
+    ['Caixa', b.caixa, 'caixa', 'Saldo de caixa de fechamento de dezembro. Calculado como resíduo para garantir Ativo = Passivo + PL.'],
+    ['Contas a Receber', b.contasReceber, 'receber', `Receita Líquida de dezembro × PMR ÷ 30 = ${formatCurrency(dre.receitaLiquida / 12 * Math.pow(1 + state.sazonalidade / 100, 11))} × ${state.pmr} ÷ 30`],
+    ['Estoque', b.estoque, 'estoque', `CMV de dezembro × PME ÷ 30 = ${formatCurrency(dre.cmv / 12 * Math.pow(1 + state.sazonalidade / 100, 11))} × ${state.pme} ÷ 30`],
     ['Ativo Não Circulante', b.ativoNaoCirculante, 'anc', 'Valor informado nas premissas do balanço.'],
   ];
 
@@ -398,7 +348,7 @@ function updateBalanco() {
   const pnpItems = [['Passivo Não Circulante', b.passivoNaoCirculante, 'pnp', 'Valor informado nas premissas do balanço.']];
   const plItems = [
     ['Capital Social', b.capitalSocial, 'cs', 'Valor informado nas premissas do balanço.'],
-    ['Lucros Acumulados', b.lucrosAcumulados, 'la', 'Lucro Líquido do exercício transferido para o PL.'],
+    ['Lucros Acumulados', b.lucrosAcumulados, 'la', 'Lucros acumulados iniciais + Lucro Líquido do exercício.'],
   ];
 
   renderBlock('#passivoCirculante .block-items', passivoItems, 'P');
@@ -495,6 +445,20 @@ function updateGiro() {
         </div>`;
     })
     .join('');
+
+  // Memória de cálculo
+  document.getElementById('memoCCC').innerHTML = `
+    <span>${state.pme} + ${state.pmr} − ${state.pmp} = <strong>${g.ccc} dias</strong></span>
+  `;
+  document.getElementById('memoNCG').innerHTML = `
+    <span>ACO (${formatCurrency(b.contasReceber)} + ${formatCurrency(b.estoque)}) − PCO (${formatCurrency(b.contasPagar)}) = <strong>${formatCurrency(g.ncg)}</strong></span>
+  `;
+  document.getElementById('memoCDG').innerHTML = `
+    <span>Caixa (${formatCurrency(b.caixa)}) + Outras Obrigações (${formatCurrency(b.outrasObrigacoes)}) = <strong>${formatCurrency(g.cdg)}</strong></span>
+  `;
+  document.getElementById('memoTesouraria').innerHTML = `
+    <span>CDG (${formatCurrency(g.cdg)}) − NCG (${formatCurrency(g.ncg)}) = <strong style="color:${g.tesouraria >= 0 ? 'var(--success)' : 'var(--danger)'}">${formatCurrency(g.tesouraria)}</strong></span>
+  `;
 
   // Régua visual CCC
   const maxDias = Math.max(180, state.pme + state.pmr, state.pmp, g.ccc);
@@ -989,15 +953,15 @@ function renderMonthlyTable() {
 
   const rowDefs = [
     { key: 'receitaBruta', label: 'Receita Bruta', cls: 'pos' },
-    { key: 'deducoes', label: '(−) Deduções/Impostos', cls: 'neg', get: (m) => -(m.receitaBruta - m.receitaLiquida) },
+    { key: 'deducoes', label: '(−) Deduções/Impostos', cls: 'neg', get: (m) => m.receitaBruta - m.receitaLiquida },
     { key: 'receitaLiquida', label: 'Receita Líquida', cls: 'total' },
-    { key: 'cmv', label: '(−) CMV', cls: 'neg', get: (m) => -m.cmv },
+    { key: 'cmv', label: '(−) CMV', cls: 'neg', get: (m) => m.cmv },
     { key: 'lucroBruto', label: 'Lucro Bruto', cls: 'sub' },
-    { key: 'despesasOperacionais', label: '(−) Despesas Operacionais', cls: 'neg', get: (m) => -m.despesasOperacionais },
+    { key: 'despesasOperacionais', label: '(−) Despesas Operacionais', cls: 'neg', get: (m) => m.despesasOperacionais },
     { key: 'ebitda', label: 'EBITDA', cls: 'sub' },
-    { key: 'depreciacao', label: '(−) Depreciação', cls: 'neg', get: (m) => -m.depreciacao },
+    { key: 'depreciacao', label: '(−) Depreciação', cls: 'neg', get: (m) => m.depreciacao },
     { key: 'ebit', label: 'EBIT', cls: 'sub' },
-    { key: 'ir', label: '(−) IR/CSLL', cls: 'neg', get: (m) => -m.ir },
+    { key: 'ir', label: '(−) IR/CSLL', cls: 'neg', get: (m) => m.ir },
     { key: 'lucroLiquido', label: 'Lucro Líquido', cls: 'total' },
   ];
 

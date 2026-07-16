@@ -391,6 +391,48 @@ body {
   font-weight: 700;
 }
 
+.memo-card { margin-bottom: 22px; }
+.memo-card h3 { margin-top: 0; }
+.memo-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 16px; }
+.memo-item {
+  background: #0f172a;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  transition: .2s;
+}
+.memo-item:hover { border-color: var(--accent); }
+.memo-title { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.memo-sigla {
+  background: var(--accent);
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.memo-name { font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.memo-formula {
+  font-family: "Segoe UI", Roboto, monospace;
+  background: rgba(56,189,248,0.1);
+  color: var(--accent);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+.memo-calc {
+  color: var(--accent-2);
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.memo-desc { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; }
+.memo-desc strong { color: var(--text); }
+
 .ccc-ruler-card { margin-bottom: 22px; }
 
 .ccc-ruler {
@@ -464,6 +506,8 @@ body {
 .dot-color.pmr { background: var(--accent); }
 .dot-color.pmp { background: var(--accent-3); }
 .dot-color.ccc { background: linear-gradient(90deg, var(--accent-2), var(--accent), var(--accent-3)); }
+
+.tooltip {
   background: #0f172a;
   border: 1px solid var(--accent);
   border-radius: 10px;
