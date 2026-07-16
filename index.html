@@ -89,6 +89,11 @@
           <button id="btnExportar" class="btn">Exportar / Imprimir</button>
         </div>
       </div>
+      <div class="view-toggle">
+        <span class="toggle-label">Visualizar valores:</span>
+        <button class="toggle-btn active" id="btnViewAnnual" data-view="annual">Anual</button>
+        <button class="toggle-btn" id="btnViewMonthly" data-view="monthly">Mensal</button>
+      </div>
       <div class="grid-2">
         <div class="card">
           <h3>Receita e Custos</h3>
@@ -193,9 +198,16 @@
           <div class="indicators" id="dreIndicators"></div>
         </div>
         <div class="card">
-          <h3>Waterfall DRE</h3>
-          <div class="waterfall" id="dreWaterfall"></div>
+          <h3>DRE (valores mensais)</h3>
+          <table class="dre-table" id="dreTableMonthly">
+            <tbody></tbody>
+          </table>
+          <div class="indicators" id="dreIndicatorsMonthly"></div>
         </div>
+      </div>
+      <div class="card">
+        <h3>Waterfall DRE</h3>
+        <div class="waterfall" id="dreWaterfall"></div>
       </div>
       <div class="card compare-card">
         <h3>Comparativo antes × depois</h3>

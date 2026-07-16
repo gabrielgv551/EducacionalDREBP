@@ -19,22 +19,51 @@ const defaultState = {
 let state = { ...defaultState };
 let savedScenario = null;
 let selectedTrace = null;
+let viewMode = 'annual'; // 'annual' | 'monthly'
 
 const inputs = {};
 const displays = {};
 
+const formatCurrencyMonthly = (v) => formatCurrency(v / 12);
+const formatPercentView = (v) => formatPercent(v);
+
 const inputDefs = [
-  ['receitaBruta', 'valReceitaBruta', formatCurrency],
-  ['deducoes', 'valDeducoes', formatPercent],
-  ['cmvPercent', 'valCmvPercent', formatPercent],
-  ['despesasFixas', 'valDespesasFixas', formatCurrency],
-  ['despesasVariaveis', 'valDespesasVariaveis', formatPercent],
+  ['receitaBruta', 'valReceitaBruta', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.receitaBruta) : formatCurrency(state.receitaBruta)],
+  ['deducoes', 'valDeducoes', () => formatPercentView(state.deducoes)],
+  ['cmvPercent', 'valCmvPercent', () => formatPercentView(state.cmvPercent)],
+  ['despesasFixas', 'valDespesasFixas', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasFixas) : formatCurrency(state.despesasFixas)],
+  ['despesasVariaveis', 'valDespesasVariaveis', () => formatPercentView(state.despesasVariaveis)],
   ['pmr', 'valPmr', (v) => `${v} dias`],
   ['pme', 'valPme', (v) => `${v} dias`],
   ['pmp', 'valPmp', (v) => `${v} dias`],
-  ['depreciacao', 'valDepreciacao', formatCurrency],
+  ['depreciacao', 'valDepreciacao', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.depreciacao) : formatCurrency(state.depreciacao)],
   ['sazonalidade', 'valSazonalidade', (v) => `${v > 0 ? '+' : ''}${v.toFixed(1).replace('.', ',')}% / mês`],
 ];
+
+function updateInputDisplays() {
+  inputDefs.forEach(([key, displayId, formatter]) => {
+    displays[key].textContent = formatter(state[key]);
+  });
+}
+
+function initViewToggle() {
+  const btnAnnual = document.getElementById('btnViewAnnual');
+  const btnMonthly = document.getElementById('btnViewMonthly');
+  btnAnnual.addEventListener('click', () => {
+    viewMode = 'annual';
+    btnAnnual.classList.add('active');
+    btnMonthly.classList.remove('active');
+    updateInputDisplays();
+    updateAll();
+  });
+  btnMonthly.addEventListener('click', () => {
+    viewMode = 'monthly';
+    btnMonthly.classList.add('active');
+    btnAnnual.classList.remove('active');
+    updateInputDisplays();
+    updateAll();
+  });
+}
 
 function initInputs() {
   inputDefs.forEach(([key, displayId, formatter]) => {
@@ -146,23 +175,22 @@ function projectCash(s = state) {
   return monthly;
 }
 
-function updateDRE() {
-  const dre = calculateDRE();
+function renderDreTable(tableId, indicatorsId, dre, divisor) {
   const rows = [
-    ['Receita Bruta', dre.receitaBruta, 'pos', 'Faturamento total antes de deduções e impostos.', ''],
-    ['(−) Deduções/Impostos', -dre.receitaBruta + dre.receitaLiquida, 'neg', 'ICMS, PIS/COFINS, IPI, devoluções e descontos.', ''],
-    ['Receita Líquida', dre.receitaLiquida, 'total', 'Valor efetivo gerado por vendas.', 'Receita Líquida'],
-    ['(−) CMV', -dre.cmv, 'neg', 'Custo da mercadoria vendida ou custo dos serviços prestados.', 'CMV'],
-    ['Lucro Bruto', dre.lucroBruto, 'sub', 'Receita líquida menos custos.', 'Lucro Bruto'],
-    ['(−) Despesas Operacionais', -dre.despesasOperacionais, 'neg', 'Despesas fixas e variáveis do dia a dia.', ''],
-    ['EBITDA', dre.ebitda, 'sub', 'Resultado operacional antes de depreciação e impostos.', 'EBITDA'],
-    ['(−) Depreciação', -dre.depreciacao, 'neg', 'Custo do desgaste de ativos imobilizados.', ''],
-    ['EBIT', dre.ebit, 'sub', 'Lucro operacional antes de juros e impostos.', 'EBIT'],
-    ['(−) IR/CSLL', -dre.ir, 'neg', 'Tributos sobre o lucro.', ''],
-    ['Lucro Líquido', dre.lucroLiquido, 'total', 'Resultado final disponível para os acionistas.', 'Lucro Líquido'],
+    ['Receita Bruta', dre.receitaBruta / divisor, 'pos', 'Faturamento total antes de deduções e impostos.', ''],
+    ['(−) Deduções/Impostos', (-dre.receitaBruta + dre.receitaLiquida) / divisor, 'neg', 'ICMS, PIS/COFINS, IPI, devoluções e descontos.', ''],
+    ['Receita Líquida', dre.receitaLiquida / divisor, 'total', 'Valor efetivo gerado por vendas.', 'Receita Líquida'],
+    ['(−) CMV', -dre.cmv / divisor, 'neg', 'Custo da mercadoria vendida ou custo dos serviços prestados.', 'CMV'],
+    ['Lucro Bruto', dre.lucroBruto / divisor, 'sub', 'Receita líquida menos custos.', 'Lucro Bruto'],
+    ['(−) Despesas Operacionais', -dre.despesasOperacionais / divisor, 'neg', 'Despesas fixas e variáveis do dia a dia.', ''],
+    ['EBITDA', dre.ebitda / divisor, 'sub', 'Resultado operacional antes de depreciação e impostos.', 'EBITDA'],
+    ['(−) Depreciação', -dre.depreciacao / divisor, 'neg', 'Custo do desgaste de ativos imobilizados.', ''],
+    ['EBIT', dre.ebit / divisor, 'sub', 'Lucro operacional antes de juros e impostos.', 'EBIT'],
+    ['(−) IR/CSLL', -dre.ir / divisor, 'neg', 'Tributos sobre o lucro.', ''],
+    ['Lucro Líquido', dre.lucroLiquido / divisor, 'total', 'Resultado final disponível para os acionistas.', 'Lucro Líquido'],
   ];
 
-  const tbody = document.querySelector('#dreTable tbody');
+  const tbody = document.querySelector(`#${tableId} tbody`);
   tbody.innerHTML = rows
     .map(([name, value, cls, tip, term]) => {
       const isTotal = cls === 'total';
@@ -171,34 +199,39 @@ function updateDRE() {
       return `<tr class="${className}" title="${tip}"><td>${displayName}</td><td>${formatCurrency(value)}</td></tr>`;
     })
     .join('');
-  
-  initInlineTooltips();
 
   const margemBruta = (dre.lucroBruto / dre.receitaLiquida) * 100;
   const margemEbitda = (dre.ebitda / dre.receitaLiquida) * 100;
   const margemLiquida = (dre.lucroLiquido / dre.receitaLiquida) * 100;
 
-  document.getElementById('dreIndicators').innerHTML = `
+  document.getElementById(indicatorsId).innerHTML = `
     <div class="indicator"><span class="label">Margem Bruta</span><span class="value">${margemBruta.toFixed(1).replace('.', ',')}%</span></div>
     <div class="indicator"><span class="label">Margem EBITDA</span><span class="value">${margemEbitda.toFixed(1).replace('.', ',')}%</span></div>
     <div class="indicator"><span class="label">Margem Líquida</span><span class="value">${margemLiquida.toFixed(1).replace('.', ',')}%</span></div>
   `;
+}
 
+function updateDRE() {
+  const dre = calculateDRE();
+  renderDreTable('dreTable', 'dreIndicators', dre, 1);
+  renderDreTable('dreTableMonthly', 'dreIndicatorsMonthly', dre, 12);
+  initInlineTooltips();
   renderWaterfall(dre);
   renderCompareDRE(dre);
 }
 
 function renderWaterfall(dre) {
+  const divisor = viewMode === 'monthly' ? 12 : 1;
   const items = [
-    ['Receita Líquida', dre.receitaLiquida, 'pos'],
-    ['CMV', -dre.cmv, 'neg'],
-    ['Desp. Op.', -dre.despesasOperacionais, 'neg'],
-    ['Deprec.', -dre.depreciacao, 'neg'],
-    ['IR/CSLL', -dre.ir, 'neg'],
-    ['Lucro Líquido', dre.lucroLiquido, 'total'],
+    ['Receita Líquida', dre.receitaLiquida / divisor, 'pos'],
+    ['CMV', -dre.cmv / divisor, 'neg'],
+    ['Desp. Op.', -dre.despesasOperacionais / divisor, 'neg'],
+    ['Deprec.', -dre.depreciacao / divisor, 'neg'],
+    ['IR/CSLL', -dre.ir / divisor, 'neg'],
+    ['Lucro Líquido', dre.lucroLiquido / divisor, 'total'],
   ];
 
-  const maxVal = Math.max(dre.receitaLiquida, ...items.map((i) => Math.abs(i[1])));
+  const maxVal = Math.max(dre.receitaLiquida / divisor, ...items.map((i) => Math.abs(i[1])));
   const container = document.getElementById('dreWaterfall');
   container.innerHTML = items
     .map(([label, value, cls]) => {
@@ -820,6 +853,7 @@ function initInlineTooltips() {
 function init() {
   initOnboarding();
   initTabs();
+  initViewToggle();
   initInputs();
   initActions();
   initInlineTooltips();
