@@ -541,5 +541,51 @@ body {
 
 .challenge-featured .btn:hover { background: #e0e7ff; }
 
+.next-step-card {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  border-color: #3b82f6;
+  color: #fff;
+  margin-top: 22px;
+}
+
+.next-step-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.next-step-card h3 { margin: 6px 0; color: #fff; }
+.next-step-card p { margin: 0; color: #bfdbfe; }
+
+.next-step-label {
+  background: rgba(255,255,255,0.15);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.next-step-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  color: #1e3a8a;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.next-step-btn:hover { background: #dbeafe; transform: translateX(3px); }
+
+.next-step-arrow { font-size: 1.3rem; }
+
 .tooltip { max-width: 220px; }
 }
