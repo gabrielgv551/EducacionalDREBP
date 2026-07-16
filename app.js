@@ -191,6 +191,45 @@ function calculateBalanco(dre, s = state) {
   };
 }
 
+function calculateBalancoMonthly(s = state) {
+  const monthlyDRE = calculateDREMonthly(s);
+  const daysInMonth = 30;
+  let lucrosAcumulados = 0;
+  return monthlyDRE.map((m) => {
+    const contasReceber = m.receitaLiquida * (s.pmr / daysInMonth);
+    const estoque = m.cmv * (s.pme / daysInMonth);
+    const contasPagar = m.cmv * (s.pmp / daysInMonth);
+    lucrosAcumulados += m.lucroLiquido;
+    const ativoNaoCirculante = s.ativoNaoCirculanteValor;
+    const passivoNaoCirculante = s.passivoNaoCirculanteValor;
+    const capitalSocial = s.capitalSocialValor;
+    const outrasObrigacoes = s.outrasObrigacoesValor;
+    const totalPassivoPL = contasPagar + outrasObrigacoes + passivoNaoCirculante + capitalSocial + lucrosAcumulados;
+    const ativoCirculanteExclCaixa = s.caixaInicial + contasReceber + estoque;
+    const caixa = totalPassivoPL - ativoCirculanteExclCaixa - ativoNaoCirculante;
+    const ativoCirculante = ativoCirculanteExclCaixa + caixa;
+    const ativoTotal = ativoCirculante + ativoNaoCirculante;
+    return {
+      month: m.month,
+      caixa,
+      caixaInicial: s.caixaInicial,
+      contasReceber,
+      estoque,
+      ativoCirculante,
+      ativoNaoCirculante,
+      ativoTotal,
+      contasPagar,
+      outrasObrigacoes,
+      passivoCirculante: contasPagar + outrasObrigacoes,
+      passivoNaoCirculante,
+      capitalSocial,
+      lucrosAcumulados,
+      patrimonioLiquido: capitalSocial + lucrosAcumulados,
+      totalPassivoPL,
+    };
+  });
+}
+
 function calculateGiro(balanco, s = state) {
   const ccc = s.pme + s.pmr - s.pmp;
   const aco = balanco.contasReceber + balanco.estoque;
@@ -365,6 +404,8 @@ function updateBalanco() {
   if (selectedTrace) {
     showTrace(selectedTrace);
   }
+
+  renderMonthlyBalanco();
 }
 
 function renderBlock(selector, items, side) {
@@ -900,6 +941,39 @@ function initInlineTooltips() {
       tooltip.classList.remove('visible');
     }
   });
+}
+
+function renderMonthlyBalanco() {
+  const monthly = calculateBalancoMonthly();
+  const head = document.querySelector('#monthlyBalancoTable thead');
+  const tbody = document.querySelector('#monthlyBalancoTable tbody');
+
+  head.innerHTML = `<tr><th>Descrição</th>${monthly.map((m) => `<th>${m.month}</th>`).join('')}</tr>`;
+
+  const rowDefs = [
+    { label: 'Ativo Circulante', cls: 'total', key: 'ativoCirculante' },
+    { label: 'Caixa', cls: 'sub', key: 'caixa' },
+    { label: 'Caixa Inicial', cls: 'sub', key: 'caixaInicial' },
+    { label: 'Contas a Receber', cls: 'sub', key: 'contasReceber' },
+    { label: 'Estoque', cls: 'sub', key: 'estoque' },
+    { label: 'Ativo Não Circulante', cls: 'total', key: 'ativoNaoCirculante' },
+    { label: 'Total Ativo', cls: 'total', key: 'ativoTotal' },
+    { label: 'Passivo Circulante', cls: 'total', key: 'passivoCirculante' },
+    { label: 'Contas a Pagar', cls: 'sub', key: 'contasPagar' },
+    { label: 'Outras Obrigações', cls: 'sub', key: 'outrasObrigacoes' },
+    { label: 'Passivo Não Circulante', cls: 'total', key: 'passivoNaoCirculante' },
+    { label: 'Patrimônio Líquido', cls: 'total', key: 'patrimonioLiquido' },
+    { label: 'Capital Social', cls: 'sub', key: 'capitalSocial' },
+    { label: 'Lucros Acumulados', cls: 'sub', key: 'lucrosAcumulados' },
+    { label: 'Total Passivo + PL', cls: 'total', key: 'totalPassivoPL' },
+  ];
+
+  tbody.innerHTML = rowDefs
+    .map((r) => {
+      const monthlyValues = monthly.map((m) => `<td>${formatCurrency(m[r.key])}</td>`).join('');
+      return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
+    })
+    .join('');
 }
 
 function renderMonthlyTable() {
