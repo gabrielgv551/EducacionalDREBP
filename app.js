@@ -148,27 +148,30 @@ function projectCash(s = state) {
 function updateDRE() {
   const dre = calculateDRE();
   const rows = [
-    ['Receita Bruta', dre.receitaBruta, 'pos', 'Faturamento total antes de deduções e impostos.'],
-    ['(−) Deduções/Impostos', -dre.receitaBruta + dre.receitaLiquida, 'neg', 'ICMS, PIS/COFINS, IPI, devoluções e descontos.'],
-    ['Receita Líquida', dre.receitaLiquida, 'total', 'Valor efetivo gerado por vendas.'],
-    ['(−) CMV', -dre.cmv, 'neg', 'Custo da mercadoria vendida ou custo dos serviços prestados.'],
-    ['Lucro Bruto', dre.lucroBruto, 'sub', 'Receita líquida menos custos.'],
-    ['(−) Despesas Operacionais', -dre.despesasOperacionais, 'neg', 'Despesas fixas e variáveis do dia a dia.'],
-    ['EBITDA', dre.ebitda, 'sub', 'Resultado operacional antes de depreciação e impostos.'],
-    ['(−) Depreciação', -dre.depreciacao, 'neg', 'Custo do desgaste de ativos imobilizados.'],
-    ['EBIT', dre.ebit, 'sub', 'Lucro operacional antes de juros e impostos.'],
-    ['(−) IR/CSLL', -dre.ir, 'neg', 'Tributos sobre o lucro.'],
-    ['Lucro Líquido', dre.lucroLiquido, 'total', 'Resultado final disponível para os acionistas.'],
+    ['Receita Bruta', dre.receitaBruta, 'pos', 'Faturamento total antes de deduções e impostos.', ''],
+    ['(−) Deduções/Impostos', -dre.receitaBruta + dre.receitaLiquida, 'neg', 'ICMS, PIS/COFINS, IPI, devoluções e descontos.', ''],
+    ['Receita Líquida', dre.receitaLiquida, 'total', 'Valor efetivo gerado por vendas.', 'Receita Líquida'],
+    ['(−) CMV', -dre.cmv, 'neg', 'Custo da mercadoria vendida ou custo dos serviços prestados.', 'CMV'],
+    ['Lucro Bruto', dre.lucroBruto, 'sub', 'Receita líquida menos custos.', 'Lucro Bruto'],
+    ['(−) Despesas Operacionais', -dre.despesasOperacionais, 'neg', 'Despesas fixas e variáveis do dia a dia.', ''],
+    ['EBITDA', dre.ebitda, 'sub', 'Resultado operacional antes de depreciação e impostos.', 'EBITDA'],
+    ['(−) Depreciação', -dre.depreciacao, 'neg', 'Custo do desgaste de ativos imobilizados.', ''],
+    ['EBIT', dre.ebit, 'sub', 'Lucro operacional antes de juros e impostos.', 'EBIT'],
+    ['(−) IR/CSLL', -dre.ir, 'neg', 'Tributos sobre o lucro.', ''],
+    ['Lucro Líquido', dre.lucroLiquido, 'total', 'Resultado final disponível para os acionistas.', 'Lucro Líquido'],
   ];
 
   const tbody = document.querySelector('#dreTable tbody');
   tbody.innerHTML = rows
-    .map(([name, value, cls, tip]) => {
+    .map(([name, value, cls, tip, term]) => {
       const isTotal = cls === 'total';
       const className = isTotal ? 'total' : cls === 'sub' ? '' : cls;
-      return `<tr class="${className}" title="${tip}"><td>${name}</td><td>${formatCurrency(value)}</td></tr>`;
+      const displayName = term ? `<span class="term" data-term="${term}">${name}</span>` : name;
+      return `<tr class="${className}" title="${tip}"><td>${displayName}</td><td>${formatCurrency(value)}</td></tr>`;
     })
     .join('');
+  
+  initInlineTooltips();
 
   const margemBruta = (dre.lucroBruto / dre.receitaLiquida) * 100;
   const margemEbitda = (dre.ebitda / dre.receitaLiquida) * 100;
@@ -332,6 +335,18 @@ function updateGiro() {
   tes.textContent = formatCurrency(g.tesouraria);
   tes.style.color = g.tesouraria >= 0 ? 'var(--success)' : 'var(--danger)';
 
+  const health = document.getElementById('metricHealth');
+  if (g.tesouraria > 0) {
+    health.textContent = 'Saudável';
+    health.className = 'metric-health healthy';
+  } else if (g.tesouraria === 0) {
+    health.textContent = 'Apertado';
+    health.className = 'metric-health warning';
+  } else {
+    health.textContent = 'Crítico';
+    health.className = 'metric-health critical';
+  }
+
   document.getElementById('timelineCCC').innerHTML = `
     <div class="timeline-phase pme">PME<br>${state.pme}d</div>
     <span class="timeline-arrow">→</span>
@@ -354,31 +369,101 @@ function updateGiro() {
         </div>`;
     })
     .join('');
+
+  // Régua visual CCC
+  const maxDias = Math.max(180, state.pme + state.pmr, state.pmp, g.ccc);
+  const pct = (v) => Math.min(100, Math.max(0, (v / maxDias) * 100));
+  document.getElementById('rulerPme').style.left = `${pct(state.pme)}%`;
+  document.getElementById('rulerPmr').style.left = `${pct(state.pme + state.pmr)}%`;
+  document.getElementById('rulerPmp').style.left = `${pct(state.pmp)}%`;
+  document.querySelector('.ruler-label.pme').style.left = `${pct(state.pme)}%`;
+  document.querySelector('.ruler-label.pmr').style.left = `${pct(state.pme + state.pmr)}%`;
+  document.querySelector('.ruler-label.pmp').style.left = `${pct(state.pmp)}%`;
+  document.querySelector('.ruler-label.pme').textContent = `PME ${state.pme}d`;
+  document.querySelector('.ruler-label.pmr').textContent = `PMR ${state.pmr}d`;
+  document.querySelector('.ruler-label.pmp').textContent = `PMP ${state.pmp}d`;
 }
 
-function updateFeedback() {
-  const el = document.querySelector('#feedbackPremissas span');
-  const msgs = [];
+function updateAllFeedbacks() {
   const ccc = state.pme + state.pmr - state.pmp;
+  const dre = calculateDRE();
+  const b = calculateBalanco(dre);
+  const g = calculateGiro(b);
+
+  // Premissas
+  const elPrem = document.querySelector('#feedbackPremissas');
+  const spanPrem = elPrem.querySelector('span');
+  const msgsPrem = [];
   if (state.pmp > state.pme + state.pmr) {
-    msgs.push('Seu PMP é maior que PME + PMR: os fornecedores financiam todo o ciclo operacional.');
+    msgsPrem.push('Seu PMP é maior que PME + PMR: os fornecedores financiam todo o ciclo operacional.');
+    elPrem.className = 'card feedback info';
   } else if (ccc > 60) {
-    msgs.push(`Ciclo de Conversão de Caixa de ${ccc} dias. Considere negociar prazos ou reduzir estoque.`);
+    msgsPrem.push(`Ciclo de Conversão de Caixa de ${ccc} dias. Considere negociar prazos ou reduzir estoque.`);
+    elPrem.className = 'card feedback warning';
   } else {
-    msgs.push(`Ciclo de Conversão de Caixa de ${ccc} dias. Nível operacional razoável para muitos negócios.`);
+    msgsPrem.push(`Ciclo de Conversão de Caixa de ${ccc} dias. Nível operacional razoável para muitos negócios.`);
+    elPrem.className = 'card feedback';
   }
   if (state.cmvPercent > 60) {
-    msgs.push('CMV elevado. Analise preço de compra/venda e mix de produtos.');
+    msgsPrem.push('CMV elevado. Analise preço de compra/venda e mix de produtos.');
+    elPrem.className = 'card feedback warning';
   }
-  el.textContent = msgs.join(' ');
+  spanPrem.textContent = msgsPrem.join(' ');
+
+  // DRE
+  const elDre = document.querySelector('#feedbackDre');
+  const spanDre = elDre.querySelector('span');
+  const margemBruta = (dre.lucroBruto / dre.receitaLiquida) * 100;
+  const margemLiquida = (dre.lucroLiquido / dre.receitaLiquida) * 100;
+  if (margemBruta < 20) {
+    spanDre.textContent = 'Margem bruta abaixo de 20%. Reveja preços ou estrutura de custos.';
+    elDre.className = 'card feedback warning';
+  } else if (margemLiquida < 5) {
+    spanDre.textContent = 'Margem líquida apertada. Pequenas variações de custo ou prazo podem zerar o lucro.';
+    elDre.className = 'card feedback warning';
+  } else {
+    spanDre.textContent = `DRE saudável: margem bruta de ${margemBruta.toFixed(1).replace('.', ',')}% e margem líquida de ${margemLiquida.toFixed(1).replace('.', ',')}%.`;
+    elDre.className = 'card feedback';
+  }
+
+  // Balanço
+  const elBal = document.querySelector('#feedbackBalanco');
+  const spanBal = elBal.querySelector('span');
+  const aco = b.contasReceber + b.estoque;
+  const pco = b.contasPagar;
+  if (aco > pco * 2) {
+    spanBal.textContent = 'Seu Ativo Circulante Operacional é bem maior que o Passivo Circulante Operacional. Isso geralmente aumenta a NCG e exige mais capital.';
+    elBal.className = 'card feedback warning';
+  } else if (b.caixa < 0) {
+    spanBal.textContent = 'O caixa calculado como fechamento ficou negativo. O passivo+PL não cobre os investimentos e o giro sem geração de caixa extra.';
+    elBal.className = 'card feedback critical';
+  } else {
+    spanBal.textContent = 'Estrutura de balanço equilibrada: Ativo = Passivo + PL. Acompanhe o crescimento do AC em relação ao PC.';
+    elBal.className = 'card feedback';
+  }
+
+  // Capital de Giro
+  const elGiro = document.querySelector('#feedbackGiro');
+  const spanGiro = elGiro.querySelector('span');
+  if (g.tesouraria < 0) {
+    spanGiro.textContent = 'Tesouraria negativa: a NCG supera o CDG. Você precisa de mais fontes de financiamento ou reduzir o ciclo de caixa.';
+    elGiro.className = 'card feedback critical';
+  } else if (g.tesouraria < g.ncg * 0.1) {
+    spanGiro.textContent = 'Tesouraria positiva, mas baixa em relação à NCG. Situação apertada.';
+    elGiro.className = 'card feedback warning';
+  } else {
+    spanGiro.textContent = 'Tesouraria confortável. O CDG cobre a NCG e ainda sobra folga para imprevistos.';
+    elGiro.className = 'card feedback';
+  }
 }
 
 function updateAll() {
   updateDRE();
   updateBalanco();
   updateGiro();
-  updateFeedback();
+  updateAllFeedbacks();
   checkChallenges();
+  updateProgress();
 }
 
 function initTabs() {
@@ -408,6 +493,53 @@ function initActions() {
     alert('Cenário salvo! Vá até o módulo DRE para ver o comparativo.');
   });
 
+  document.getElementById('btnExportar').addEventListener('click', () => {
+    const dre = calculateDRE();
+    const b = calculateBalanco(dre);
+    const g = calculateGiro(b);
+    const content = `
+      <h1>FinSim - Cenário</h1>
+      <h2>Premissas</h2>
+      <ul>
+        <li>Receita Bruta: ${formatCurrency(state.receitaBruta)}</li>
+        <li>Deduções: ${formatPercent(state.deducoes)}</li>
+        <li>CMV: ${formatPercent(state.cmvPercent)}</li>
+        <li>Despesas Fixas: ${formatCurrency(state.despesasFixas)}</li>
+        <li>Despesas Variáveis: ${formatPercent(state.despesasVariaveis)}</li>
+        <li>PMR: ${state.pmr} dias</li>
+        <li>PME: ${state.pme} dias</li>
+        <li>PMP: ${state.pmp} dias</li>
+      </ul>
+      <h2>DRE</h2>
+      <ul>
+        <li>Receita Líquida: ${formatCurrency(dre.receitaLiquida)}</li>
+        <li>Lucro Bruto: ${formatCurrency(dre.lucroBruto)}</li>
+        <li>EBITDA: ${formatCurrency(dre.ebitda)}</li>
+        <li>Lucro Líquido: ${formatCurrency(dre.lucroLiquido)}</li>
+      </ul>
+      <h2>Balanço</h2>
+      <ul>
+        <li>Total Ativo: ${formatCurrency(b.ativoTotal)}</li>
+        <li>Total Passivo + PL: ${formatCurrency(b.totalPassivoPL)}</li>
+        <li>Caixa: ${formatCurrency(b.caixa)}</li>
+      </ul>
+      <h2>Capital de Giro</h2>
+      <ul>
+        <li>CCC: ${g.ccc} dias</li>
+        <li>NCG: ${formatCurrency(g.ncg)}</li>
+        <li>CDG: ${formatCurrency(g.cdg)}</li>
+        <li>Tesouraria: ${formatCurrency(g.tesouraria)}</li>
+      </ul>
+    `;
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <html><head><title>FinSim - Cenário</title>
+      <style>body{font-family:Segoe UI,Roboto,sans-serif;padding:40px;background:#fff;color:#111} h1,h2{color:#0f172a} ul{line-height:1.8}</style>
+      </head><body>${content}<button onclick="window.print()">Imprimir / Salvar PDF</button></body></html>
+    `);
+    win.document.close();
+  });
+
   document.getElementById('btnComparar').addEventListener('click', () => {
     document.querySelector('[data-tab="dre"]').click();
   });
@@ -415,6 +547,12 @@ function initActions() {
   document.getElementById('btnSimPmp').addEventListener('click', () => simulateScenario('pmp', -10));
   document.getElementById('btnSimPmr').addEventListener('click', () => simulateScenario('pmr', -10));
   document.getElementById('btnSimPme').addEventListener('click', () => simulateScenario('pme', 10));
+  document.getElementById('btnChallengeHome').addEventListener('click', () => {
+    document.querySelector('[data-tab="giro"]').click();
+  });
+  document.getElementById('btnChallengeGiro').addEventListener('click', () => {
+    document.querySelector('[data-tab="aprender"]').click();
+  });
 }
 
 function simulateScenario(key, delta) {
@@ -453,16 +591,26 @@ const glossaryTerms = {
   'NCG': 'Necessidade de Capital de Giro: Ativo Circulante Operacional − Passivo Circulante Operacional.',
   'CDG': 'Capital de Giro Líquido: recursos disponíveis para financiar o giro (caixa + recursos de curto prazo).',
   'Tesouraria': 'Saldo de Tesouraria = CDG − NCG. Positivo indica folga; negativo, necessidade de financiamento.',
+  'Ativo Circulante': 'Bens e direitos de curto prazo (até 1 ano): caixa, contas a receber e estoque.',
+  'Ativo Não Circulante': 'Bens e direitos de longo prazo: imobilizado, investimentos e intangível.',
+  'Passivo Circulante': 'Obrigações de curto prazo: contas a pagar, empréstimos de curto prazo, salários etc.',
+  'Passivo Não Circulante': 'Obrigações de longo prazo: empréstimos e financiamentos a pagar após 1 ano.',
+  'Patrimônio Líquido': 'Recursos próprios da empresa: capital social, reservas e lucros acumulados.',
+  'Lucros Acumulados': 'Lucros retidos no negócio, que aumentam o Patrimônio Líquido.',
 };
 
 function initAprender() {
   const dl = document.getElementById('glossary');
   dl.innerHTML = Object.entries(glossaryTerms)
-    .map(([term, def]) => `<dt>${term}</dt><dd>${def}</dd>`)
+    .map(([term, def]) => `<dt class="term" data-term="${term}">${term}</dt><dd>${def}</dd>`)
     .join('');
   dl.querySelectorAll('dt').forEach((dt) => {
-    dt.addEventListener('click', () => dt.nextElementSibling.classList.toggle('open'));
+    dt.addEventListener('click', () => {
+      dt.nextElementSibling.classList.toggle('open');
+      trackProgress('glossary', dt.textContent);
+    });
   });
+  initInlineTooltips();
 
   const questions = [
     {
@@ -500,6 +648,7 @@ function initAprender() {
       question.querySelectorAll('.quiz-option').forEach((o) => o.classList.remove('correct', 'wrong'));
       if (oi === questions[qi].correct) {
         opt.classList.add('correct');
+        trackProgress('quiz', qi);
       } else {
         opt.classList.add('wrong');
         question.querySelectorAll('.quiz-option')[questions[qi].correct].classList.add('correct');
@@ -508,6 +657,38 @@ function initAprender() {
   });
 
   initChallenges();
+  updateProgress();
+}
+
+function trackProgress(type, id) {
+  const key = `finsim_progress_${type}`;
+  const seen = JSON.parse(localStorage.getItem(key) || '[]');
+  if (!seen.includes(id)) {
+    seen.push(id);
+    localStorage.setItem(key, JSON.stringify(seen));
+    updateProgress();
+  }
+}
+
+function updateProgress() {
+  const glossarySeen = JSON.parse(localStorage.getItem('finsim_progress_glossary') || '[]');
+  const quizSeen = JSON.parse(localStorage.getItem('finsim_progress_quiz') || '[]');
+  const totalTerms = Object.keys(glossaryTerms).length;
+  const totalQuiz = 3;
+  const challengeDone = challenges.filter((c) => c.check()).length;
+  const total = totalTerms + totalQuiz + challenges.length;
+  const done = glossarySeen.length + quizSeen.length + challengeDone;
+  const pct = total ? (done / total) * 100 : 0;
+  const fill = document.getElementById('progressFill');
+  const stats = document.getElementById('progressStats');
+  if (fill && stats) {
+    fill.style.width = `${pct}%`;
+    stats.innerHTML = `
+      <span><strong>${glossarySeen.length}/${totalTerms}</strong> termos do glossário</span>
+      <span><strong>${quizSeen.length}/${totalQuiz}</strong> quiz</span>
+      <span><strong>${challengeDone}/${challenges.length}</strong> desafios</span>
+    `;
+  }
 }
 
 const challenges = [
@@ -563,10 +744,84 @@ function checkChallenges() {
   });
 }
 
+function initOnboarding() {
+  const overlay = document.getElementById('onboarding');
+  if (localStorage.getItem('finsim_onboarding_done') === '1') {
+    overlay.classList.add('hidden');
+    return;
+  }
+  const slides = document.querySelectorAll('.onboarding-slide');
+  const dots = document.querySelectorAll('.dot');
+  const btnPrev = document.getElementById('btnOnboardingPrev');
+  const btnNext = document.getElementById('btnOnboardingNext');
+  const btnSkip = document.getElementById('btnOnboardingSkip');
+  let current = 0;
+
+  function show(i) {
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+    dots.forEach((d, idx) => d.classList.toggle('active', idx === i));
+    btnPrev.style.visibility = i === 0 ? 'hidden' : 'visible';
+    btnNext.textContent = i === slides.length - 1 ? 'Começar' : 'Próximo';
+  }
+
+  btnNext.addEventListener('click', () => {
+    if (current < slides.length - 1) {
+      current++;
+      show(current);
+    } else {
+      localStorage.setItem('finsim_onboarding_done', '1');
+      overlay.classList.add('hidden');
+    }
+  });
+
+  btnPrev.addEventListener('click', () => {
+    if (current > 0) { current--; show(current); }
+  });
+
+  btnSkip.addEventListener('click', () => {
+    localStorage.setItem('finsim_onboarding_done', '1');
+    overlay.classList.add('hidden');
+  });
+
+  show(0);
+}
+
+function initInlineTooltips() {
+  const tooltip = document.createElement('div');
+  tooltip.className = 'tooltip';
+  document.body.appendChild(tooltip);
+
+  document.querySelectorAll('.term').forEach((el) => {
+    const term = el.dataset.term;
+    const def = glossaryTerms[term] || 'Termo técnico';
+    el.addEventListener('mouseenter', (e) => {
+      tooltip.innerHTML = `<strong>${term}</strong><br>${def}<br><a class="goto-glossary">Ver no glossário</a>`;
+      tooltip.classList.add('visible');
+      const rect = el.getBoundingClientRect();
+      const ttRect = tooltip.getBoundingClientRect();
+      let left = rect.left + (rect.width - ttRect.width) / 2 + window.scrollX;
+      let top = rect.bottom + 8 + window.scrollY;
+      if (left < 10) left = 10;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    });
+    el.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
+  });
+
+  tooltip.addEventListener('click', (e) => {
+    if (e.target.classList.contains('goto-glossary')) {
+      document.querySelector('[data-tab="aprender"]').click();
+      tooltip.classList.remove('visible');
+    }
+  });
+}
+
 function init() {
+  initOnboarding();
   initTabs();
   initInputs();
   initActions();
+  initInlineTooltips();
   initAprender();
   updateAll();
 }

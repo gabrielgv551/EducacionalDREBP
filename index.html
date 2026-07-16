@@ -7,6 +7,37 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Onboarding -->
+  <div class="onboarding-overlay" id="onboarding">
+    <div class="onboarding-card">
+      <div class="onboarding-slides" id="onboardingSlides">
+        <div class="onboarding-slide active">
+          <div class="onboarding-icon">📊</div>
+          <h2>Bem-vindo ao FinSim</h2>
+          <p>Este app foi feito para quem está aprendendo finanças. Aqui você vai ver, na prática, como decisões operacionais se transformam em resultados financeiros.</p>
+        </div>
+        <div class="onboarding-slide">
+          <div class="onboarding-icon">🔗</div>
+          <h2>Os 3 módulos estão conectados</h2>
+          <p>Você ajusta <strong>premissas</strong> → o resultado aparece na <strong>DRE</strong> → a DRE alimenta o <strong>Balanço</strong> → e o Balanço explica seu <strong>Capital de Giro</strong>.</p>
+        </div>
+        <div class="onboarding-slide">
+          <div class="onboarding-icon">🎯</div>
+          <h2>Aprenda brincando</h2>
+          <p>Use os sliders, observe os gráficos, leia os feedbacks, tente os desafios e consulte o glossário. Quanto mais você mexer, mais clara fica a relação causa-efeito.</p>
+        </div>
+      </div>
+      <div class="onboarding-dots" id="onboardingDots">
+        <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+      <div class="onboarding-actions">
+        <button id="btnOnboardingPrev" class="btn secondary">Voltar</button>
+        <button id="btnOnboardingNext" class="btn primary">Próximo</button>
+        <button id="btnOnboardingSkip" class="btn secondary">Pular</button>
+      </div>
+    </div>
+  </div>
+
   <header class="app-header">
     <div class="brand">
       <span class="logo">◈</span>
@@ -55,6 +86,7 @@
           <button id="btnPadrao" class="btn secondary">Resetar padrão</button>
           <button id="btnSalvar" class="btn primary">Salvar cenário</button>
           <button id="btnComparar" class="btn">Comparar cenários</button>
+          <button id="btnExportar" class="btn">Exportar / Imprimir</button>
         </div>
       </div>
       <div class="grid-2">
@@ -89,17 +121,17 @@
         <div class="card">
           <h3>Prazos e Sazonalidade</h3>
           <div class="input-group">
-            <label for="pmr">Prazo Médio de Recebimento (PMR, dias)</label>
+            <label for="pmr"><span class="term" data-term="PMR">Prazo Médio de Recebimento</span> (PMR, dias)</label>
             <input type="range" id="pmr" min="0" max="180" step="1" />
             <div class="input-value"><span id="valPmr"></span></div>
           </div>
           <div class="input-group">
-            <label for="pme">Prazo Médio de Estoque (PME, dias)</label>
+            <label for="pme"><span class="term" data-term="PME">Prazo Médio de Estoque</span> (PME, dias)</label>
             <input type="range" id="pme" min="0" max="180" step="1" />
             <div class="input-value"><span id="valPme"></span></div>
           </div>
           <div class="input-group">
-            <label for="pmp">Prazo Médio de Pagamento (PMP, dias)</label>
+            <label for="pmp"><span class="term" data-term="PMP">Prazo Médio de Pagamento</span> (PMP, dias)</label>
             <input type="range" id="pmp" min="0" max="180" step="1" />
             <div class="input-value"><span id="valPmp"></span></div>
           </div>
@@ -117,6 +149,14 @@
       </div>
       <div class="card feedback" id="feedbackPremissas">
         <strong>Feedback:</strong> <span></span>
+      </div>
+      <div class="card challenge-featured" id="challengeHome">
+        <div class="challenge-featured-content">
+          <span class="challenge-badge">🎯 Desafio em destaque</span>
+          <h3>Reduza o CCC em 15 dias sem perder margem</h3>
+          <p>Ajuste PMR, PME ou PMP e observe o efeito no Capital de Giro.</p>
+          <button class="btn primary" id="btnChallengeHome">Ir para o desafio</button>
+        </div>
       </div>
     </section>
 
@@ -156,9 +196,10 @@
         <h3>Comparativo antes × depois</h3>
         <div class="compare-grid" id="compareDre"></div>
       </div>
+      <div class="card feedback" id="feedbackDre">
+        <strong>Feedback DRE:</strong> <span></span>
+      </div>
     </section>
-
-    <!-- Balanço -->
     <section id="tab-balanco" class="tab-panel">
       <div class="panel-header">
         <h2>Balanço Patrimonial</h2>
@@ -175,11 +216,11 @@
         <div class="card balanco-col">
           <h3>Ativo</h3>
           <div class="balance-block" id="ativoCirculante">
-            <h4>Ativo Circulante</h4>
+            <h4><span class="term" data-term="Ativo Circulante">Ativo Circulante</span></h4>
             <div class="block-items"></div>
           </div>
           <div class="balance-block" id="ativoNaoCirculante">
-            <h4>Ativo Não Circulante</h4>
+            <h4><span class="term" data-term="Ativo Não Circulante">Ativo Não Circulante</span></h4>
             <div class="block-items"></div>
           </div>
           <div class="balance-total" id="totalAtivo"></div>
@@ -187,15 +228,15 @@
         <div class="card balanco-col">
           <h3>Passivo + PL</h3>
           <div class="balance-block" id="passivoCirculante">
-            <h4>Passivo Circulante</h4>
+            <h4><span class="term" data-term="Passivo Circulante">Passivo Circulante</span></h4>
             <div class="block-items"></div>
           </div>
           <div class="balance-block" id="passivoNaoCirculante">
-            <h4>Passivo Não Circulante</h4>
+            <h4><span class="term" data-term="Passivo Não Circulante">Passivo Não Circulante</span></h4>
             <div class="block-items"></div>
           </div>
           <div class="balance-block" id="patrimonioLiquido">
-            <h4>Patrimônio Líquido</h4>
+            <h4><span class="term" data-term="Patrimônio Líquido">Patrimônio Líquido</span></h4>
             <div class="block-items"></div>
           </div>
           <div class="balance-total" id="totalPassivoPL"></div>
@@ -205,6 +246,9 @@
         <h3>Rastreabilidade</h3>
         <p>Clique em uma conta do balanço para ver qual premissa a gera.</p>
         <div id="traceInfo" class="trace-info">Selecione uma conta à esquerda ou à direita.</div>
+      </div>
+      <div class="card feedback" id="feedbackBalanco">
+        <strong>Feedback Balanço:</strong> <span></span>
       </div>
     </section>
 
@@ -224,24 +268,46 @@
       </div>
       <div class="grid-4" id="giroCards">
         <div class="card metric-card">
-          <div class="metric-label">Ciclo de Conversão de Caixa</div>
+          <div class="metric-label"><span class="term" data-term="CCC">Ciclo de Conversão de Caixa</span></div>
           <div class="metric-value" id="metricCCC"></div>
           <div class="metric-desc">PME + PMR − PMP</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-label">Necessidade de Capital de Giro</div>
+          <div class="metric-label"><span class="term" data-term="NCG">Necessidade de Capital de Giro</span></div>
           <div class="metric-value" id="metricNCG"></div>
           <div class="metric-desc">ACO − PCO</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-label">Capital de Giro Líquido</div>
+          <div class="metric-label"><span class="term" data-term="CDG">Capital de Giro Líquido</span></div>
           <div class="metric-value" id="metricCDG"></div>
           <div class="metric-desc">Financiamento disponível</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-label">Saldo de Tesouraria</div>
+          <div class="metric-label"><span class="term" data-term="Tesouraria">Saldo de Tesouraria</span></div>
           <div class="metric-value" id="metricTesouraria"></div>
+          <div class="metric-health" id="metricHealth"></div>
           <div class="metric-desc">CDG − NCG</div>
+        </div>
+      </div>
+      <div class="card ccc-ruler-card">
+        <h3>Régua Visual do Ciclo de Caixa</h3>
+        <p class="hint">Veja por que <span class="term" data-term="CCC">CCC</span> = PME + PMR − PMP.</p>
+        <div class="ccc-ruler" id="cccRuler">
+          <div class="ruler-track"></div>
+          <div class="ruler-mark pme" id="rulerPme"></div>
+          <div class="ruler-mark pmr" id="rulerPmr"></div>
+          <div class="ruler-mark pmp" id="rulerPmp"></div>
+          <div class="ruler-labels">
+            <span class="ruler-label pme">PME</span>
+            <span class="ruler-label pmr">PMR</span>
+            <span class="ruler-label pmp">PMP</span>
+          </div>
+        </div>
+        <div class="ruler-legend">
+          <span><span class="dot-color pme"></span> PME: estoque</span>
+          <span><span class="dot-color pmr"></span> PMR: clientes</span>
+          <span><span class="dot-color pmp"></span> PMP: fornecedores</span>
+          <span><span class="dot-color ccc"></span> CCC: total</span>
         </div>
       </div>
       <div class="grid-2">
@@ -262,6 +328,17 @@
         <button id="btnSimPme" class="btn">Simular: PME +10 dias</button>
         <div class="scenario-result" id="scenarioResult"></div>
       </div>
+      <div class="card challenge-featured" id="challengeGiro">
+        <div class="challenge-featured-content">
+          <span class="challenge-badge">🎯 Desafio em destaque</span>
+          <h3>Alcance saldo de Tesouraria positivo</h3>
+          <p>Reduza a NCG ou aumente o CDG ajustando prazos e custos.</p>
+          <button class="btn primary" id="btnChallengeGiro">Ver todos os desafios</button>
+        </div>
+      </div>
+      <div class="card feedback" id="feedbackGiro">
+        <strong>Feedback Capital de Giro:</strong> <span></span>
+      </div>
     </section>
 
     <!-- Aprender -->
@@ -269,6 +346,13 @@
       <div class="panel-header">
         <h2>Aprender</h2>
         <p class="hint">Conteúdo pedagógico, glossário, quiz e desafios.</p>
+      </div>
+      <div class="card progress-card">
+        <h3>Seu progresso</h3>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-stats" id="progressStats"></div>
       </div>
       <div class="grid-2">
         <div class="card">
