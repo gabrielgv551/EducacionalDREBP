@@ -47,7 +47,7 @@
     <nav class="stepper" id="mainNav" aria-label="Etapas do fluxo financeiro">
       <button class="nav-btn active" data-tab="premissas">
         <span class="step-number">1</span>
-        <span class="step-label">Premissas</span>
+        <span class="step-label">Premissas DRE</span>
       </button>
       <span class="step-arrow" aria-hidden="true">→</span>
       <button class="nav-btn" data-tab="dre">
@@ -55,13 +55,18 @@
         <span class="step-label">DRE</span>
       </button>
       <span class="step-arrow" aria-hidden="true">→</span>
-      <button class="nav-btn" data-tab="balanco">
+      <button class="nav-btn" data-tab="premissas-balanco">
         <span class="step-number">3</span>
+        <span class="step-label">Premissas Balanço</span>
+      </button>
+      <span class="step-arrow" aria-hidden="true">→</span>
+      <button class="nav-btn" data-tab="balanco">
+        <span class="step-number">4</span>
         <span class="step-label">Balanço</span>
       </button>
       <span class="step-arrow" aria-hidden="true">→</span>
       <button class="nav-btn" data-tab="giro">
-        <span class="step-number">4</span>
+        <span class="step-number">5</span>
         <span class="step-label">Capital de Giro</span>
       </button>
       <span class="step-arrow learn" aria-hidden="true">→</span>
@@ -73,21 +78,15 @@
   </header>
 
   <div class="stepper-hint">
-    <p>Fluxo: <strong>Premissas</strong> alimentam a <strong>DRE</strong> → a DRE gera o <strong>Balanço</strong> (via Lucros Acumulados) → o Balanço e os prazos geram o <strong>Capital de Giro</strong>.</p>
+    <p>Fluxo: <strong>Premissas DRE</strong> alimentam a <strong>DRE</strong> → <strong>Premissas Balanço</strong> + DRE geram o <strong>Balanço</strong> → o Balanço e os prazos geram o <strong>Capital de Giro</strong>.</p>
   </div>
 
   <main class="container">
     <!-- Painel de Premissas -->
     <section id="tab-premissas" class="tab-panel active">
       <div class="panel-header">
-        <h2>Painel de Premissas</h2>
-        <p class="hint">Ajuste os sliders e veja DRE, Balanço e Capital de Giro recalcularem em tempo real.</p>
-        <div class="panel-actions">
-          <button id="btnPadrao" class="btn secondary">Resetar padrão</button>
-          <button id="btnSalvar" class="btn primary">Salvar cenário</button>
-          <button id="btnComparar" class="btn">Comparar cenários</button>
-          <button id="btnExportar" class="btn">Exportar / Imprimir</button>
-        </div>
+        <h2>Premissas DRE</h2>
+        <p class="hint">Ajuste as premissas que alimentam a DRE.</p>
       </div>
       <div class="view-toggle">
         <span class="toggle-label">Visualizar valores:</span>
@@ -157,7 +156,7 @@
       </div>
       <div class="module-nav">
         <span></span>
-        <button class="btn primary next-btn" data-next="dre">Próximo <span>→</span></button>
+        <button class="btn primary next-btn" data-next="premissas-balanco">Próximo <span>→</span></button>
       </div>
     </section>
 
@@ -212,23 +211,17 @@
       </div>
       <div class="module-nav">
         <button class="btn secondary prev-btn" data-prev="premissas"><span>←</span> Voltar</button>
-        <button class="btn primary next-btn" data-next="balanco">Próximo <span>→</span></button>
+        <button class="btn primary next-btn" data-next="premissas-balanco">Próximo <span>→</span></button>
       </div>
     </section>
-    <section id="tab-balanco" class="tab-panel">
+    <!-- Premissas Balanço -->
+    <section id="tab-premissas-balanco" class="tab-panel">
       <div class="panel-header">
-        <h2>Balanço Patrimonial</h2>
-        <p class="hint">Ativo = Passivo + Patrimônio Líquido. O caixa é a conta de fechamento.</p>
-      </div>
-      <div class="card flow-diagram center">
-        <div class="flow-step">DRE</div><span class="flow-arrow">→</span>
-        <div class="flow-step">Lucro Líquido</div><span class="flow-arrow">→</span>
-        <div class="flow-step">Lucros Acumulados</div><span class="flow-arrow">→</span>
-        <div class="flow-step">Patrimônio Líquido</div><span class="flow-arrow">→</span>
-        <div class="flow-step">Balanço</div>
+        <h2>Premissas do Balanço</h2>
+        <p class="hint">Informe os valores estruturais que compõem o balanço.</p>
       </div>
       <div class="card">
-        <h3>Premissas do Balanço</h3>
+        <h3>Estrutura de Capital</h3>
         <div class="grid-2">
           <div class="input-group">
             <label for="caixaInicial">Caixa inicial (R$)</label>
@@ -256,6 +249,24 @@
             <div class="input-value"><span id="valOutrasObrigacoes"></span></div>
           </div>
         </div>
+      </div>
+      <div class="module-nav">
+        <button class="btn secondary prev-btn" data-prev="premissas-balanco"><span>←</span> Voltar</button>
+        <button class="btn primary next-btn" data-next="balanco">Próximo <span>→</span></button>
+      </div>
+    </section>
+
+    <section id="tab-balanco" class="tab-panel">
+      <div class="panel-header">
+        <h2>Balanço Patrimonial</h2>
+        <p class="hint">Ativo = Passivo + Patrimônio Líquido. O caixa é a conta de fechamento.</p>
+      </div>
+      <div class="card flow-diagram center">
+        <div class="flow-step">DRE</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Lucro Líquido</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Lucros Acumulados</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Patrimônio Líquido</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Balanço</div>
       </div>
       <div class="balance-sheet">
         <div class="card balanco-col">
