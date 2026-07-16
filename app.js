@@ -378,8 +378,7 @@ function updateBalanco() {
   const dre = calculateDRE();
   const b = calculateBalanco(dre);
   const data = [
-    ['Caixa', b.caixa, 'caixa', 'Caixa calculado como conta de fechamento: Ativo = Passivo + PL.'],
-    ['Caixa Inicial', b.caixaInicial, 'caixaInicial', 'Saldo de caixa informado nas premissas do balanço.'],
+    ['Caixa', b.caixa, 'caixa', 'Saldo de caixa calculado pelo fluxo acumulado: Caixa Inicial + Lucros Líquidos − Variação da NCG.'],
     ['Contas a Receber', b.contasReceber, 'receber', `Receita Líquida × PMR ÷ 365 = ${formatCurrency(dre.receitaLiquida)} × ${state.pmr} ÷ 365`],
     ['Estoque', b.estoque, 'estoque', `CMV × PME ÷ 365 = ${formatCurrency(dre.cmv)} × ${state.pme} ÷ 365`],
     ['Ativo Não Circulante', b.ativoNaoCirculante, 'anc', 'Valor informado nas premissas do balanço.'],
@@ -959,7 +958,6 @@ function renderMonthlyBalanco() {
   const rowDefs = [
     { label: 'Ativo Circulante', cls: 'total', key: 'ativoCirculante' },
     { label: 'Caixa', cls: 'sub', key: 'caixa' },
-    { label: 'Caixa Inicial', cls: 'sub', key: 'caixaInicial' },
     { label: 'Contas a Receber', cls: 'sub', key: 'contasReceber' },
     { label: 'Estoque', cls: 'sub', key: 'estoque' },
     { label: 'Ativo Não Circulante', cls: 'total', key: 'ativoNaoCirculante' },
