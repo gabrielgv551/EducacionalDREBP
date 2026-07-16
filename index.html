@@ -155,18 +155,9 @@
       <div class="card feedback" id="feedbackPremissas">
         <strong>Feedback:</strong> <span></span>
       </div>
-      <div class="card next-step-card" id="nextStepHome">
-        <div class="next-step-content">
-          <div>
-            <span class="next-step-label">Próxima etapa</span>
-            <h3>Ver como essas premissas viram DRE</h3>
-            <p>Siga o fluxo e veja a cascata do resultado.</p>
-          </div>
-          <button class="next-step-btn" id="btnNextDre" aria-label="Ir para DRE">
-            <span>Ir para DRE</span>
-            <span class="next-step-arrow">→</span>
-          </button>
-        </div>
+      <div class="module-nav">
+        <span></span>
+        <button class="btn primary next-btn" data-next="dre">Próximo <span>→</span></button>
       </div>
     </section>
 
@@ -218,6 +209,10 @@
       </div>
       <div class="card feedback" id="feedbackDre">
         <strong>Feedback DRE:</strong> <span></span>
+      </div>
+      <div class="module-nav">
+        <button class="btn secondary prev-btn" data-prev="premissas"><span>←</span> Voltar</button>
+        <button class="btn primary next-btn" data-next="balanco">Próximo <span>→</span></button>
       </div>
     </section>
     <section id="tab-balanco" class="tab-panel">
@@ -299,6 +294,10 @@
       </div>
       <div class="card feedback" id="feedbackBalanco">
         <strong>Feedback Balanço:</strong> <span></span>
+      </div>
+      <div class="module-nav">
+        <button class="btn secondary prev-btn" data-prev="dre"><span>←</span> Voltar</button>
+        <button class="btn primary next-btn" data-next="giro">Próximo <span>→</span></button>
       </div>
     </section>
 
@@ -389,6 +388,10 @@
       <div class="card feedback" id="feedbackGiro">
         <strong>Feedback Capital de Giro:</strong> <span></span>
       </div>
+      <div class="module-nav">
+        <button class="btn secondary prev-btn" data-prev="balanco"><span>←</span> Voltar</button>
+        <button class="btn primary next-btn" data-next="aprender">Próximo <span>→</span></button>
+      </div>
     </section>
 
     <!-- Aprender -->
@@ -417,6 +420,10 @@
       <div class="card">
         <h3>Desafios Guiados</h3>
         <div class="challenges" id="challenges"></div>
+      </div>
+      <div class="module-nav">
+        <button class="btn secondary prev-btn" data-prev="giro"><span>←</span> Voltar</button>
+        <span></span>
       </div>
     </section>
   </main>

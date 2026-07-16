@@ -627,11 +627,11 @@ function initActions() {
   document.getElementById('btnSimPmp').addEventListener('click', () => simulateScenario('pmp', -10));
   document.getElementById('btnSimPmr').addEventListener('click', () => simulateScenario('pmr', -10));
   document.getElementById('btnSimPme').addEventListener('click', () => simulateScenario('pme', 10));
-  document.getElementById('btnNextDre').addEventListener('click', () => {
-    document.querySelector('[data-tab="dre"]').click();
+  document.querySelectorAll('.next-btn').forEach((btn) => {
+    btn.addEventListener('click', () => document.querySelector(`[data-tab="${btn.dataset.next}"]`).click());
   });
-  document.getElementById('btnChallengeGiro').addEventListener('click', () => {
-    document.querySelector('[data-tab="aprender"]').click();
+  document.querySelectorAll('.prev-btn').forEach((btn) => {
+    btn.addEventListener('click', () => document.querySelector(`[data-tab="${btn.dataset.prev}"]`).click());
   });
 }
 

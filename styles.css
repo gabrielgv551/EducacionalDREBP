@@ -610,51 +610,32 @@ body {
 
 .challenge-featured .btn:hover { background: #e0e7ff; }
 
-.next-step-card {
-  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-  border-color: #3b82f6;
-  color: #fff;
-  margin-top: 22px;
-}
-
-.next-step-content {
+.module-nav {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 24px;
+  gap: 16px;
 }
 
-.next-step-card h3 { margin: 6px 0; color: #fff; }
-.next-step-card p { margin: 0; color: #bfdbfe; }
-
-.next-step-label {
-  background: rgba(255,255,255,0.15);
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.next-step-btn {
+.module-nav .btn {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  background: #fff;
-  color: #1e3a8a;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 20px;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
   font-weight: 700;
-  cursor: pointer;
-  transition: .2s;
+  min-width: 120px;
+  justify-content: center;
 }
 
-.next-step-btn:hover { background: #dbeafe; transform: translateX(3px); }
+.module-nav .btn.primary { background: #3b82f6; color: #fff; }
+.module-nav .btn.primary:hover { background: #2563eb; }
 
-.next-step-arrow { font-size: 1.3rem; }
+.module-nav .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.module-nav .btn.secondary:hover { background: rgba(255,255,255,0.05); }
 
-.tooltip { max-width: 220px; }
+@media (max-width: 600px) {
+  .module-nav .btn { flex: 1; }
+  .tooltip { max-width: 220px; }
 }
