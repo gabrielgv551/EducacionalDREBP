@@ -687,6 +687,38 @@ body {
 .module-nav .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
 .module-nav .btn.secondary:hover { background: rgba(255,255,255,0.05); }
 
+.balance-premissas { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 22px; margin-bottom: 22px; }
+.balance-group { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.balance-group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.balance-group-header h3 { margin: 0; font-size: 1.1rem; color: var(--accent); }
+.balance-group-total { font-weight: 700; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.account-list { display: flex; flex-direction: column; gap: 10px; }
+.account-item { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; background: #0f172a; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; transition: .2s; }
+.account-item:hover { border-color: var(--accent); }
+.account-item input[type="text"] { background: transparent; border: 1px solid transparent; color: var(--text); font-size: 0.95rem; padding: 6px 8px; border-radius: 6px; width: 100%; }
+.account-item input[type="text"]:focus { border-color: var(--accent); outline: none; background: rgba(56,189,248,0.08); }
+.account-item input[type="number"] { background: transparent; border: 1px solid var(--border); color: var(--text); font-size: 0.95rem; padding: 6px 8px; border-radius: 6px; width: 140px; text-align: right; font-variant-numeric: tabular-nums; }
+.account-item input[type="number"]:focus { border-color: var(--accent); outline: none; }
+.account-actions { display: flex; gap: 6px; }
+.account-actions button { background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 6px; cursor: pointer; padding: 6px 10px; font-size: 0.85rem; transition: .2s; }
+.account-actions button:hover { background: rgba(248,113,113,0.15); border-color: var(--danger); color: var(--danger); }
+.add-account { margin-top: 12px; position: relative; }
+.add-account-btn { background: #0f172a; border: 1px dashed var(--border); color: var(--text-muted); padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%; transition: .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.add-account-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,0.08); }
+.suggestions-dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 6px; background: #0f172a; border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); z-index: 20; overflow: hidden; display: none; }
+.suggestions-dropdown.open { display: block; }
+.suggestion-item { padding: 10px 14px; cursor: pointer; transition: .2s; border-bottom: 1px solid var(--border); }
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover { background: rgba(56,189,248,0.12); color: var(--accent); }
+.suggestion-divider { padding: 8px 14px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+
+@media (max-width: 600px) {
+  .balance-premissas { grid-template-columns: 1fr; }
+  .account-item { grid-template-columns: 1fr; gap: 8px; }
+  .account-item input[type="number"] { width: 100%; text-align: left; }
+  .account-actions { justify-content: flex-end; }
+}
+
 @media (max-width: 600px) {
   .module-nav .btn { flex: 1; }
   .tooltip { max-width: 220px; }

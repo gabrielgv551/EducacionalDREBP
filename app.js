@@ -14,17 +14,58 @@ const defaultState = {
   pmp: 30,
   depreciacao: 180_000,
   sazonalidade: 1.0,
-  caixaInicial: 500_000,
-  ativoNaoCirculanteValor: 1_500_000,
-  passivoNaoCirculanteValor: 1_000_000,
-  capitalSocialValor: 500_000,
-  outrasObrigacoesValor: 250_000,
+};
+
+const defaultBalanceAccounts = {
+  ativoCirculante: [
+    { id: 'caixaInicial', name: 'Caixa Inicial', value: 500_000, type: 'fixed' },
+  ],
+  ativoNaoCirculante: [
+    { id: 'imobilizado', name: 'Imobilizado', value: 1_500_000, type: 'fixed' },
+  ],
+  passivoCirculante: [
+    { id: 'outrasObrigacoes', name: 'Outras Obrigações', value: 250_000, type: 'fixed' },
+  ],
+  passivoNaoCirculante: [
+    { id: 'emprestimos', name: 'Empréstimos', value: 1_000_000, type: 'fixed' },
+  ],
+  patrimonioLiquido: [
+    { id: 'capitalSocial', name: 'Capital Social', value: 500_000, type: 'fixed' },
+  ],
+};
+
+const accountSuggestions = {
+  ativoCirculante: ['Aplicações Financeiras', 'Títulos a Receber', 'Adiantamentos a Fornecedores', 'Estoque de Mercadorias', 'Contas a Receber de Curto Prazo'],
+  ativoNaoCirculante: ['Intangível', 'Investimentos', 'Terrenos', 'Máquinas e Equipamentos', 'Veículos'],
+  passivoCirculante: ['Salários a Pagar', 'Impostos a Pagar', 'Empréstimos de Curto Prazo', 'Contas a Pagar', 'Provisão para 13º e Férias'],
+  passivoNaoCirculante: ['Financiamentos', 'Provisão para Contingências', 'Debêntures', 'Impostos Diferidos'],
+  patrimonioLiquido: ['Reservas de Capital', 'Lucros a Realizar', 'Reservas de Lucros', 'Prejuízos Acumulados'],
 };
 
 let state = { ...defaultState };
+let balanceAccounts = cloneBalanceAccounts(defaultBalanceAccounts);
 let savedScenario = null;
 let selectedTrace = null;
 let viewMode = 'annual'; // 'annual' | 'monthly'
+
+function cloneBalanceAccounts(accounts) {
+  return Object.fromEntries(Object.entries(accounts).map(([k, v]) => [k, v.map((a) => ({ ...a }))]));
+}
+
+function sumAccounts(accounts) {
+  return accounts.reduce((acc, a) => acc + (parseFloat(a.value) || 0), 0);
+}
+
+function getAccountValue(accounts, group, id) {
+  const account = accounts[group].find((a) => a.id === id);
+  return account ? parseFloat(account.value) || 0 : 0;
+}
+
+function getOtherAccountsTotal(accounts, group, excludeId) {
+  return accounts[group]
+    .filter((a) => a.id !== excludeId)
+    .reduce((acc, a) => acc + (parseFloat(a.value) || 0), 0);
+}
 
 const inputs = {};
 const displays = {};
@@ -43,11 +84,6 @@ const inputDefs = [
   ['pmp', 'valPmp', (v) => `${v} dias`],
   ['depreciacao', 'valDepreciacao', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.depreciacao) : formatCurrency(state.depreciacao)],
   ['sazonalidade', 'valSazonalidade', (v) => `${v > 0 ? '+' : ''}${v.toFixed(1).replace('.', ',')}% / mês`],
-  ['caixaInicial', 'valCaixaInicial', formatCurrency],
-  ['ativoNaoCirculanteValor', 'valAtivoNaoCirculante', formatCurrency],
-  ['passivoNaoCirculanteValor', 'valPassivoNaoCirculante', formatCurrency],
-  ['capitalSocialValor', 'valCapitalSocial', formatCurrency],
-  ['outrasObrigacoesValor', 'valOutrasObrigacoes', formatCurrency],
 ];
 
 function updateInputDisplays() {
@@ -149,16 +185,24 @@ function calculateBalanco(dre, s = state) {
   return monthly[monthly.length - 1];
 }
 
-function calculateBalancoMonthly(s = state) {
+function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const monthlyDRE = calculateDREMonthly(s);
   const daysInMonth = 30;
   const m0 = monthlyDRE[0];
   const cr0 = m0.receitaLiquida * (s.pmr / daysInMonth);
   const est0 = m0.cmv * (s.pme / daysInMonth);
   const cp0 = m0.cmv * (s.pmp / daysInMonth);
+
+  const caixaInicial = getAccountValue(accounts, 'ativoCirculante', 'caixaInicial');
+  const outrasAtivoCirculante = getOtherAccountsTotal(accounts, 'ativoCirculante', 'caixaInicial');
+  const totalAtivoNaoCirculante = sumAccounts(accounts.ativoNaoCirculante);
+  const totalPassivoCirculanteInformado = sumAccounts(accounts.passivoCirculante);
+  const totalPassivoNaoCirculante = sumAccounts(accounts.passivoNaoCirculante);
+  const totalPatrimonioLiquidoInformado = sumAccounts(accounts.patrimonioLiquido);
+
   // O caixa inicial é o saldo de caixa do exercício anterior. Ele é financiado pelos lucros acumulados iniciais.
-  const lucrosAcumuladosIniciais = s.caixaInicial + cr0 + est0 + s.ativoNaoCirculanteValor
-    - cp0 - s.outrasObrigacoesValor - s.passivoNaoCirculanteValor - s.capitalSocialValor - m0.lucroLiquido;
+  const lucrosAcumuladosIniciais = caixaInicial + outrasAtivoCirculante + cr0 + est0 + totalAtivoNaoCirculante
+    - cp0 - totalPassivoCirculanteInformado - totalPassivoNaoCirculante - totalPatrimonioLiquidoInformado - m0.lucroLiquido;
 
   return monthlyDRE.map((m, i) => {
     const contasReceber = m.receitaLiquida * (s.pmr / daysInMonth);
@@ -167,17 +211,17 @@ function calculateBalancoMonthly(s = state) {
     const lucroLiquidoAcumulado = monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0);
     const lucrosAcumulados = lucrosAcumuladosIniciais + lucroLiquidoAcumulado;
 
-    const ativoNaoCirculante = s.ativoNaoCirculanteValor;
-    const passivoNaoCirculante = s.passivoNaoCirculanteValor;
-    const capitalSocial = s.capitalSocialValor;
-    const outrasObrigacoes = s.outrasObrigacoesValor;
+    const ativoNaoCirculante = totalAtivoNaoCirculante;
+    const passivoNaoCirculante = totalPassivoNaoCirculante;
+    const outrasObrigacoes = totalPassivoCirculanteInformado;
+    const patrimonioLiquidoInformado = totalPatrimonioLiquidoInformado;
 
     const passivoCirculante = contasPagar + outrasObrigacoes;
-    const patrimonioLiquido = capitalSocial + lucrosAcumulados;
+    const patrimonioLiquido = patrimonioLiquidoInformado + lucrosAcumulados;
     const totalPassivoPL = passivoCirculante + passivoNaoCirculante + patrimonioLiquido;
 
-    const caixa = totalPassivoPL - (contasReceber + estoque + ativoNaoCirculante);
-    const ativoCirculante = caixa + contasReceber + estoque;
+    const caixa = totalPassivoPL - (contasReceber + estoque + outrasAtivoCirculante + ativoNaoCirculante);
+    const ativoCirculante = caixa + contasReceber + estoque + outrasAtivoCirculante;
     const ativoTotal = ativoCirculante + ativoNaoCirculante;
 
     return {
@@ -185,6 +229,7 @@ function calculateBalancoMonthly(s = state) {
       caixa,
       contasReceber,
       estoque,
+      outrasAtivoCirculante,
       ativoCirculante,
       ativoNaoCirculante,
       ativoTotal,
@@ -192,7 +237,7 @@ function calculateBalancoMonthly(s = state) {
       outrasObrigacoes,
       passivoCirculante,
       passivoNaoCirculante,
-      capitalSocial,
+      patrimonioLiquidoInformado,
       lucrosAcumulados,
       lucrosAcumuladosIniciais,
       patrimonioLiquido,
@@ -327,15 +372,22 @@ function renderCompareDRE(dre) {
 function updateBalanco() {
   const dre = calculateDRE();
   const b = calculateBalanco(dre);
-  const data = [
+
+  const ativoCirculanteContas = balanceAccounts.ativoCirculante
+    .filter((acc) => acc.id !== 'caixaInicial')
+    .map((acc) => [acc.name, getAccountValue(balanceAccounts, 'ativoCirculante', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
+  const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante.map((acc) => [acc.name, getAccountValue(balanceAccounts, 'ativoNaoCirculante', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
+  const passivoCirculanteContas = balanceAccounts.passivoCirculante.map((acc) => [acc.name, getAccountValue(balanceAccounts, 'passivoCirculante', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
+  const passivoNaoCirculanteContas = balanceAccounts.passivoNaoCirculante.map((acc) => [acc.name, getAccountValue(balanceAccounts, 'passivoNaoCirculante', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
+  const patrimonioLiquidoContas = balanceAccounts.patrimonioLiquido.map((acc) => [acc.name, getAccountValue(balanceAccounts, 'patrimonioLiquido', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
+
+  const ativoItems = [
     ['Caixa', b.caixa, 'caixa', 'Saldo de caixa de fechamento de dezembro. Calculado como resíduo para garantir Ativo = Passivo + PL.'],
     ['Contas a Receber', b.contasReceber, 'receber', `Receita Líquida de dezembro × PMR ÷ 30 = ${formatCurrency(dre.receitaLiquida / 12 * Math.pow(1 + state.sazonalidade / 100, 11))} × ${state.pmr} ÷ 30`],
     ['Estoque', b.estoque, 'estoque', `CMV de dezembro × PME ÷ 30 = ${formatCurrency(dre.cmv / 12 * Math.pow(1 + state.sazonalidade / 100, 11))} × ${state.pme} ÷ 30`],
-    ['Ativo Não Circulante', b.ativoNaoCirculante, 'anc', 'Valor informado nas premissas do balanço.'],
+    ...ativoCirculanteContas,
   ];
-
-  const ativoItems = data.slice(0, 3);
-  const anItems = data.slice(3, 4);
+  const anItems = ativoNaoCirculanteContas;
 
   renderBlock('#ativoCirculante .block-items', ativoItems, 'A');
   renderBlock('#ativoNaoCirculante .block-items', anItems, 'A');
@@ -343,11 +395,11 @@ function updateBalanco() {
 
   const passivoItems = [
     ['Contas a Pagar', b.contasPagar, 'pagar', `CMV × PMP ÷ 365 = ${formatCurrency(dre.cmv)} × ${state.pmp} ÷ 365`],
-    ['Outras Obrigações', b.outrasObrigacoes, 'outras', 'Valor informado nas premissas do balanço.'],
+    ...passivoCirculanteContas,
   ];
-  const pnpItems = [['Passivo Não Circulante', b.passivoNaoCirculante, 'pnp', 'Valor informado nas premissas do balanço.']];
+  const pnpItems = passivoNaoCirculanteContas;
   const plItems = [
-    ['Capital Social', b.capitalSocial, 'cs', 'Valor informado nas premissas do balanço.'],
+    ...patrimonioLiquidoContas,
     ['Lucros Acumulados', b.lucrosAcumulados, 'la', 'Lucros acumulados iniciais + Lucro Líquido do exercício.'],
   ];
 
@@ -397,6 +449,116 @@ function showTrace(item) {
     <strong>${item.name}</strong> (${sideLabel})<br>
     <span style="color:var(--text-muted)">${item.desc}</span>
   `;
+}
+
+function renderBalancePremissas() {
+  const container = document.getElementById('balancePremissas');
+  if (!container) return;
+
+  const groupLabels = {
+    ativoCirculante: 'Ativo Circulante',
+    ativoNaoCirculante: 'Ativo Não Circulante',
+    passivoCirculante: 'Passivo Circulante',
+    passivoNaoCirculante: 'Passivo Não Circulante',
+    patrimonioLiquido: 'Patrimônio Líquido',
+  };
+
+  container.innerHTML = Object.entries(balanceAccounts)
+    .map(([group, accounts]) => {
+      const total = sumAccounts(accounts);
+      return `
+        <div class="balance-group" data-group="${group}">
+          <div class="balance-group-header">
+            <h3>${groupLabels[group]}</h3>
+            <span class="balance-group-total">${formatCurrency(total)}</span>
+          </div>
+          <div class="account-list">
+            ${accounts
+              .map(
+                (acc, index) => `
+              <div class="account-item" data-group="${group}" data-index="${index}">
+                <input type="text" class="account-name" value="${acc.name}" data-field="name" />
+                <input type="number" class="account-value" value="${acc.value}" data-field="value" min="0" step="1000" />
+                <div class="account-actions">
+                  ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
+                </div>
+              </div>`
+              )
+              .join('')}
+          </div>
+          <div class="add-account">
+            <button class="add-account-btn">+ Adicionar conta</button>
+            <div class="suggestions-dropdown">
+              ${(accountSuggestions[group] || [])
+                .map((s) => `<div class="suggestion-item" data-suggestion="${s}">${s}</div>`)
+                .join('')}
+              <div class="suggestion-divider">ou</div>
+              <div class="suggestion-item" data-suggestion="__custom__">Outra conta...</div>
+            </div>
+          </div>
+        </div>`;
+    })
+    .join('');
+
+  container.querySelectorAll('.account-item input').forEach((input) => {
+    input.addEventListener('input', (e) => {
+      const item = e.target.closest('.account-item');
+      const group = item.dataset.group;
+      const index = parseInt(item.dataset.index, 10);
+      const field = e.target.dataset.field;
+      const value = e.target.value;
+      balanceAccounts[group][index][field] = field === 'value' ? parseFloat(value) || 0 : value;
+      const groupEl = item.closest('.balance-group');
+      groupEl.querySelector('.balance-group-total').textContent = formatCurrency(sumAccounts(balanceAccounts[group]));
+      updateAll();
+    });
+  });
+
+  container.querySelectorAll('.btn-remove-account').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const item = e.target.closest('.account-item');
+      const group = item.dataset.group;
+      const index = parseInt(item.dataset.index, 10);
+      balanceAccounts[group].splice(index, 1);
+      renderBalancePremissas();
+      updateAll();
+    });
+  });
+
+  container.querySelectorAll('.add-account').forEach((wrapper) => {
+    const group = wrapper.closest('.balance-group').dataset.group;
+    const btn = wrapper.querySelector('.add-account-btn');
+    const dropdown = wrapper.querySelector('.suggestions-dropdown');
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.querySelectorAll('.suggestions-dropdown').forEach((d) => {
+        if (d !== dropdown) d.classList.remove('open');
+      });
+      dropdown.classList.toggle('open');
+    });
+
+    dropdown.querySelectorAll('.suggestion-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const suggestion = item.dataset.suggestion;
+        let name = suggestion;
+        if (suggestion === '__custom__') {
+          name = prompt('Nome da nova conta:');
+          if (!name) return;
+        }
+        const id = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        balanceAccounts[group].push({ id, name, value: 0, type: 'custom' });
+        renderBalancePremissas();
+        updateAll();
+      });
+    });
+  });
+}
+
+function closeAllSuggestions(e) {
+  const container = document.getElementById('balancePremissas');
+  if (!container || (e && e.target.closest('.add-account'))) return;
+  container.querySelectorAll('.suggestions-dropdown').forEach((d) => d.classList.remove('open'));
 }
 
 function updateGiro() {
@@ -575,15 +737,17 @@ function safeAddListener(id, event, handler) {
 function initActions() {
   safeAddListener('btnPadrao', 'click', () => {
     state = { ...defaultState };
+    balanceAccounts = cloneBalanceAccounts(defaultBalanceAccounts);
     inputDefs.forEach(([key]) => {
       inputs[key].value = state[key];
       displays[key].textContent = getFormatter(key)(state[key]);
     });
+    renderBalancePremissas();
     updateAll();
   });
 
   safeAddListener('btnSalvar', 'click', () => {
-    savedScenario = { ...state };
+    savedScenario = { ...state, balanceAccounts: cloneBalanceAccounts(balanceAccounts) };
     renderCompareDRE(calculateDRE());
     alert('Cenário salvo! Vá até o módulo DRE para ver o comparativo.');
   });
@@ -592,9 +756,27 @@ function initActions() {
     const dre = calculateDRE();
     const b = calculateBalanco(dre);
     const g = calculateGiro(b);
+
+    const balanceAccountsHtml = Object.entries(balanceAccounts)
+      .map(([group, accounts]) => {
+        const groupLabel = {
+          ativoCirculante: 'Ativo Circulante',
+          ativoNaoCirculante: 'Ativo Não Circulante',
+          passivoCirculante: 'Passivo Circulante',
+          passivoNaoCirculante: 'Passivo Não Circulante',
+          patrimonioLiquido: 'Patrimônio Líquido',
+        }[group];
+        return `
+          <h4>${groupLabel}</h4>
+          <ul>
+            ${accounts.map((a) => `<li>${a.name}: ${formatCurrency(a.value)}</li>`).join('')}
+          </ul>`;
+      })
+      .join('');
+
     const content = `
       <h1>FinSim - Cenário</h1>
-      <h2>Premissas</h2>
+      <h2>Premissas DRE</h2>
       <ul>
         <li>Receita Bruta: ${formatCurrency(state.receitaBruta)}</li>
         <li>Deduções: ${formatPercent(state.deducoes)}</li>
@@ -605,6 +787,8 @@ function initActions() {
         <li>PME: ${state.pme} dias</li>
         <li>PMP: ${state.pmp} dias</li>
       </ul>
+      <h2>Premissas do Balanço</h2>
+      ${balanceAccountsHtml}
       <h2>DRE</h2>
       <ul>
         <li>Receita Líquida: ${formatCurrency(dre.receitaLiquida)}</li>
@@ -931,7 +1115,7 @@ function renderMonthlyBalanco() {
     { label: 'Outras Obrigações', cls: 'sub', key: 'outrasObrigacoes' },
     { label: 'Passivo Não Circulante', cls: 'total', key: 'passivoNaoCirculante' },
     { label: 'Patrimônio Líquido', cls: 'total', key: 'patrimonioLiquido' },
-    { label: 'Capital Social', cls: 'sub', key: 'capitalSocial' },
+    { label: 'Capital Social / PL Informado', cls: 'sub', key: 'patrimonioLiquidoInformado' },
     { label: 'Lucros Acumulados', cls: 'sub', key: 'lucrosAcumulados' },
     { label: 'Total Passivo + PL', cls: 'total', key: 'totalPassivoPL' },
   ];
@@ -982,6 +1166,8 @@ function init() {
   initViewToggle();
   initInputs();
   initActions();
+  renderBalancePremissas();
+  document.addEventListener('click', closeAllSuggestions);
   renderMonthlyTable();
   initInlineTooltips();
   initAprender();
