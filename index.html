@@ -164,11 +164,30 @@
     <section id="tab-premissas-balanco" class="tab-panel">
       <div class="panel-header">
         <h2>Premissas do Balanço</h2>
-        <p class="hint">Monte a estrutura patrimonial inicial. Adicione, edite ou remova contas dentro de cada grupo.</p>
+        <p class="hint">Preencha cada grupo de contas. Use Próximo para avançar.</p>
       </div>
-      <div class="balance-premissas" id="balancePremissas">
-        <!-- Renderizado via JS -->
+
+      <div class="balance-wizard" id="balanceWizard">
+        <div class="wizard-progress" id="wizardProgress">
+          <div class="wizard-step-indicator active" data-step="0">Ativo Circulante</div>
+          <div class="wizard-step-indicator" data-step="1">Ativo Não Circulante</div>
+          <div class="wizard-step-indicator" data-step="2">Passivo Circulante</div>
+          <div class="wizard-step-indicator" data-step="3">Passivo Não Circulante</div>
+          <div class="wizard-step-indicator" data-step="4">Patrimônio Líquido</div>
+        </div>
+
+        <div class="wizard-body">
+          <div class="wizard-content" id="wizardContent">
+            <!-- Renderizado via JS -->
+          </div>
+
+          <div class="wizard-actions">
+            <button class="btn secondary" id="wizardPrev">← Voltar</button>
+            <button class="btn primary" id="wizardNext">Próximo →</button>
+          </div>
+        </div>
       </div>
+
       <div class="module-nav">
         <button class="btn secondary prev-btn" data-prev="premissas"><span>←</span> Voltar</button>
         <button class="btn primary next-btn" data-next="dre">Próximo <span>→</span></button>

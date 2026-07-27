@@ -47,6 +47,7 @@ let balanceAccounts = cloneBalanceAccounts(defaultBalanceAccounts);
 let savedScenario = null;
 let selectedTrace = null;
 let viewMode = 'annual'; // 'annual' | 'monthly'
+let currentBalanceStep = 0;
 
 function cloneBalanceAccounts(accounts) {
   return Object.fromEntries(Object.entries(accounts).map(([k, v]) => [k, v.map((a) => ({ ...a }))]));
@@ -452,9 +453,10 @@ function showTrace(item) {
 }
 
 function renderBalancePremissas() {
-  const container = document.getElementById('balancePremissas');
+  const container = document.getElementById('balanceWizard');
   if (!container) return;
 
+  const groupKeys = Object.keys(balanceAccounts);
   const groupLabels = {
     ativoCirculante: 'Ativo Circulante',
     ativoNaoCirculante: 'Ativo Não Circulante',
@@ -462,45 +464,58 @@ function renderBalancePremissas() {
     passivoNaoCirculante: 'Passivo Não Circulante',
     patrimonioLiquido: 'Patrimônio Líquido',
   };
+  const groupSubtitles = {
+    ativoCirculante: 'Bens e direitos de curto prazo, como caixa, recebíveis e estoque.',
+    ativoNaoCirculante: 'Bens e direitos de longo prazo, como imobilizado e investimentos.',
+    passivoCirculante: 'Obrigações de curto prazo, como fornecedores e salários.',
+    passivoNaoCirculante: 'Obrigações de longo prazo, como empréstimos e financiamentos.',
+    patrimonioLiquido: 'Recursos próprios da empresa, como capital social e reservas.',
+  };
 
-  container.innerHTML = Object.entries(balanceAccounts)
-    .map(([group, accounts]) => {
-      const total = sumAccounts(accounts);
-      return `
-        <div class="balance-group" data-group="${group}">
-          <div class="balance-group-header">
-            <h3>${groupLabels[group]}</h3>
-            <span class="balance-group-total">${formatCurrency(total)}</span>
-          </div>
-          <div class="account-list">
-            ${accounts
-              .map(
-                (acc, index) => `
-              <div class="account-item" data-group="${group}" data-index="${index}">
-                <input type="text" class="account-name" value="${acc.name}" data-field="name" />
-                <input type="number" class="account-value" value="${acc.value}" data-field="value" min="0" step="1000" />
-                <div class="account-actions">
-                  ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
-                </div>
-              </div>`
-              )
-              .join('')}
-          </div>
-          <div class="add-account">
-            <button class="add-account-btn">+ Adicionar conta</button>
-            <div class="suggestions-dropdown">
-              ${(accountSuggestions[group] || [])
-                .map((s) => `<div class="suggestion-item" data-suggestion="${s}">${s}</div>`)
-                .join('')}
-              <div class="suggestion-divider">ou</div>
-              <div class="suggestion-item" data-suggestion="__custom__">Outra conta...</div>
-            </div>
-          </div>
-        </div>`;
-    })
-    .join('');
+  const group = groupKeys[currentBalanceStep];
+  const accounts = balanceAccounts[group];
+  const total = sumAccounts(accounts);
 
-  container.querySelectorAll('.account-item input').forEach((input) => {
+  container.querySelectorAll('.wizard-step-indicator').forEach((el, i) => {
+    el.classList.toggle('active', i === currentBalanceStep);
+    el.classList.toggle('completed', i < currentBalanceStep);
+  });
+
+  const content = document.getElementById('wizardContent');
+  content.innerHTML = `
+    <h3 class="wizard-group-title">${groupLabels[group]}</h3>
+    <p class="wizard-group-subtitle">${groupSubtitles[group]}</p>
+    <div class="wizard-group-total">
+      <span class="label">Total do grupo</span>
+      <span class="value" id="wizardGroupTotal">${formatCurrency(total)}</span>
+    </div>
+    <div class="account-list" data-group="${group}">
+      ${accounts
+        .map(
+          (acc, index) => `
+        <div class="account-item" data-group="${group}" data-index="${index}">
+          <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
+          <input type="number" class="account-value" value="${acc.value}" data-field="value" min="0" step="1000" placeholder="R$" />
+          <div class="account-actions">
+            ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
+          </div>
+        </div>`
+        )
+        .join('')}
+    </div>
+    <div class="add-account">
+      <button class="add-account-btn">+ Adicionar conta</button>
+      <div class="suggestions-dropdown">
+        ${(accountSuggestions[group] || [])
+          .map((s) => `<div class="suggestion-item" data-suggestion="${s}">${s}</div>`)
+          .join('')}
+        <div class="suggestion-divider">ou</div>
+        <div class="suggestion-item" data-suggestion="__custom__">Outra conta...</div>
+      </div>
+    </div>
+  `;
+
+  content.querySelectorAll('.account-item input').forEach((input) => {
     input.addEventListener('input', (e) => {
       const item = e.target.closest('.account-item');
       const group = item.dataset.group;
@@ -508,13 +523,13 @@ function renderBalancePremissas() {
       const field = e.target.dataset.field;
       const value = e.target.value;
       balanceAccounts[group][index][field] = field === 'value' ? parseFloat(value) || 0 : value;
-      const groupEl = item.closest('.balance-group');
-      groupEl.querySelector('.balance-group-total').textContent = formatCurrency(sumAccounts(balanceAccounts[group]));
+      document.getElementById('wizardGroupTotal').textContent = formatCurrency(sumAccounts(balanceAccounts[group]));
+      updateWizardStepIndicators();
       updateAll();
     });
   });
 
-  container.querySelectorAll('.btn-remove-account').forEach((btn) => {
+  content.querySelectorAll('.btn-remove-account').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const item = e.target.closest('.account-item');
       const group = item.dataset.group;
@@ -525,38 +540,88 @@ function renderBalancePremissas() {
     });
   });
 
-  container.querySelectorAll('.add-account').forEach((wrapper) => {
-    const group = wrapper.closest('.balance-group').dataset.group;
-    const btn = wrapper.querySelector('.add-account-btn');
-    const dropdown = wrapper.querySelector('.suggestions-dropdown');
+  const wrapper = content.querySelector('.add-account');
+  const btn = wrapper.querySelector('.add-account-btn');
+  const dropdown = wrapper.querySelector('.suggestions-dropdown');
 
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      container.querySelectorAll('.suggestions-dropdown').forEach((d) => {
-        if (d !== dropdown) d.classList.remove('open');
-      });
-      dropdown.classList.toggle('open');
-    });
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
 
-    dropdown.querySelectorAll('.suggestion-item').forEach((item) => {
-      item.addEventListener('click', () => {
-        const suggestion = item.dataset.suggestion;
-        let name = suggestion;
-        if (suggestion === '__custom__') {
-          name = prompt('Nome da nova conta:');
-          if (!name) return;
-        }
-        const id = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-        balanceAccounts[group].push({ id, name, value: 0, type: 'custom' });
-        renderBalancePremissas();
-        updateAll();
-      });
+  dropdown.querySelectorAll('.suggestion-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      const suggestion = item.dataset.suggestion;
+      let name = suggestion;
+      if (suggestion === '__custom__') {
+        name = prompt('Nome da nova conta:');
+        if (!name) return;
+      }
+      const id = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      balanceAccounts[group].push({ id, name, value: 0, type: 'custom' });
+      renderBalancePremissas();
+      updateAll();
     });
+  });
+
+  updateWizardNavigation();
+}
+
+function updateWizardStepIndicators() {
+  const container = document.getElementById('balanceWizard');
+  if (!container) return;
+  const groupKeys = Object.keys(balanceAccounts);
+  container.querySelectorAll('.wizard-step-indicator').forEach((el, i) => {
+    el.classList.toggle('active', i === currentBalanceStep);
+    el.classList.toggle('completed', i < currentBalanceStep);
+  });
+}
+
+function updateWizardNavigation() {
+  const groupKeys = Object.keys(balanceAccounts);
+  const prevBtn = document.getElementById('wizardPrev');
+  const nextBtn = document.getElementById('wizardNext');
+  if (prevBtn) prevBtn.disabled = currentBalanceStep === 0;
+  if (nextBtn) {
+    nextBtn.textContent = currentBalanceStep === groupKeys.length - 1 ? 'Concluir ✓' : 'Próximo →';
+    nextBtn.disabled = false;
+  }
+}
+
+function initBalanceWizard() {
+  const container = document.getElementById('balanceWizard');
+  if (!container) return;
+
+  container.querySelectorAll('.wizard-step-indicator').forEach((el) => {
+    el.addEventListener('click', () => {
+      currentBalanceStep = parseInt(el.dataset.step, 10);
+      renderBalancePremissas();
+    });
+  });
+
+  const prevBtn = document.getElementById('wizardPrev');
+  const nextBtn = document.getElementById('wizardNext');
+  const groupKeys = Object.keys(balanceAccounts);
+
+  prevBtn.addEventListener('click', () => {
+    if (currentBalanceStep > 0) {
+      currentBalanceStep--;
+      renderBalancePremissas();
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentBalanceStep < groupKeys.length - 1) {
+      currentBalanceStep++;
+      renderBalancePremissas();
+    } else {
+      document.querySelector('[data-tab="dre"]').click();
+    }
   });
 }
 
 function closeAllSuggestions(e) {
-  const container = document.getElementById('balancePremissas');
+  const container = document.getElementById('balanceWizard');
   if (!container || (e && e.target.closest('.add-account'))) return;
   container.querySelectorAll('.suggestions-dropdown').forEach((d) => d.classList.remove('open'));
 }
@@ -1167,6 +1232,7 @@ function init() {
   initInputs();
   initActions();
   renderBalancePremissas();
+  initBalanceWizard();
   document.addEventListener('click', closeAllSuggestions);
   renderMonthlyTable();
   initInlineTooltips();

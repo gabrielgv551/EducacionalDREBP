@@ -687,39 +687,49 @@ body {
 .module-nav .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
 .module-nav .btn.secondary:hover { background: rgba(255,255,255,0.05); }
 
-.balance-premissas { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 22px; margin-bottom: 22px; }
-.balance-group { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-.balance-group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.balance-group-header h3 { margin: 0; font-size: 1.1rem; color: var(--accent); }
-.balance-group-total { font-weight: 700; color: var(--accent-2); font-variant-numeric: tabular-nums; }
-.account-list { display: flex; flex-direction: column; gap: 10px; }
-.account-item { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; background: #0f172a; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; transition: .2s; }
+.balance-wizard { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 22px; }
+.wizard-progress { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.wizard-step-indicator { flex: 1; min-width: 140px; text-align: center; padding: 12px 14px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); background: #0f172a; border: 1px solid var(--border); cursor: pointer; transition: .2s; white-space: nowrap; }
+.wizard-step-indicator:hover { border-color: var(--accent); color: var(--text); }
+.wizard-step-indicator.active { background: rgba(56,189,248,0.15); border-color: var(--accent); color: var(--accent); }
+.wizard-step-indicator.completed { background: rgba(52,211,153,0.12); border-color: var(--success); color: var(--success); }
+.wizard-body { min-height: 360px; }
+.wizard-content { animation: fade .25s ease; }
+.wizard-group-title { font-size: 1.25rem; color: var(--accent); margin: 0 0 6px; }
+.wizard-group-subtitle { color: var(--text-muted); font-size: 0.9rem; margin: 0 0 20px; }
+.wizard-group-total { display: flex; align-items: baseline; gap: 10px; margin-bottom: 20px; padding: 14px 16px; background: #0f172a; border-radius: 12px; border: 1px solid var(--border); }
+.wizard-group-total .label { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; }
+.wizard-group-total .value { font-size: 1.5rem; font-weight: 800; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.wizard-actions { display: flex; justify-content: space-between; margin-top: 24px; gap: 16px; }
+.wizard-actions .btn { padding: 12px 24px; border-radius: 10px; font-weight: 700; min-width: 140px; justify-content: center; }
+.wizard-actions .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.account-list { display: flex; flex-direction: column; gap: 12px; }
+.account-item { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; background: #0f172a; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; transition: .2s; }
 .account-item:hover { border-color: var(--accent); }
-.account-item input[type="text"] { background: transparent; border: 1px solid transparent; color: var(--text); font-size: 0.95rem; padding: 6px 8px; border-radius: 6px; width: 100%; }
+.account-item input[type="text"] { background: transparent; border: 1px solid transparent; color: var(--text); font-size: 1rem; padding: 8px 10px; border-radius: 8px; width: 100%; font-weight: 600; }
 .account-item input[type="text"]:focus { border-color: var(--accent); outline: none; background: rgba(56,189,248,0.08); }
-.account-item input[type="number"] { background: transparent; border: 1px solid var(--border); color: var(--text); font-size: 0.95rem; padding: 6px 8px; border-radius: 6px; width: 140px; text-align: right; font-variant-numeric: tabular-nums; }
-.account-item input[type="number"]:focus { border-color: var(--accent); outline: none; }
-.account-actions { display: flex; gap: 6px; }
-.account-actions button { background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 6px; cursor: pointer; padding: 6px 10px; font-size: 0.85rem; transition: .2s; }
-.account-actions button:hover { background: rgba(248,113,113,0.15); border-color: var(--danger); color: var(--danger); }
-.add-account { margin-top: 12px; position: relative; }
-.add-account-btn { background: #0f172a; border: 1px dashed var(--border); color: var(--text-muted); padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%; transition: .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-.add-account-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,0.08); }
-.suggestions-dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 6px; background: #0f172a; border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); z-index: 20; overflow: hidden; display: none; }
-.suggestions-dropdown.open { display: block; }
-.suggestion-item { padding: 10px 14px; cursor: pointer; transition: .2s; border-bottom: 1px solid var(--border); }
+.account-item input[type="number"] { background: #0f172a; border: 1px solid var(--border); color: var(--text); font-size: 1rem; padding: 8px 10px; border-radius: 8px; width: 160px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; transition: .2s; }
+.account-item input[type="number"]:focus { border-color: var(--accent); outline: none; background: rgba(56,189,248,0.08); }
+.account-item input[type="number"]:hover { border-color: #475569; }
+.account-actions { display: flex; gap: 8px; }
+.btn-remove-account { background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 8px; cursor: pointer; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: .2s; }
+.btn-remove-account:hover { background: rgba(248,113,113,0.15); border-color: var(--danger); color: var(--danger); }
+.add-account { margin-top: 16px; position: relative; }
+.add-account-btn { background: rgba(56,189,248,0.1); border: 1px dashed var(--accent); color: var(--accent); padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 700; width: 100%; transition: .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.add-account-btn:hover { background: rgba(56,189,248,0.2); border-style: solid; }
+.suggestions-dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 8px; background: #0f172a; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); z-index: 20; overflow: hidden; display: none; max-height: 280px; overflow-y: auto; }
+.suggestions-dropdown.open { display: block; animation: fade .2s ease; }
+.suggestion-item { padding: 12px 16px; cursor: pointer; transition: .2s; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
 .suggestion-item:last-child { border-bottom: none; }
 .suggestion-item:hover { background: rgba(56,189,248,0.12); color: var(--accent); }
-.suggestion-divider { padding: 8px 14px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+.suggestion-divider { padding: 10px 16px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); }
 
 @media (max-width: 600px) {
-  .balance-premissas { grid-template-columns: 1fr; }
-  .account-item { grid-template-columns: 1fr; gap: 8px; }
+  .wizard-progress { padding-bottom: 12px; }
+  .wizard-step-indicator { min-width: 120px; padding: 10px 12px; font-size: 0.8rem; }
+  .wizard-group-total .value { font-size: 1.2rem; }
+  .account-item { grid-template-columns: 1fr; gap: 10px; }
   .account-item input[type="number"] { width: 100%; text-align: left; }
   .account-actions { justify-content: flex-end; }
-}
-
-@media (max-width: 600px) {
-  .module-nav .btn { flex: 1; }
-  .tooltip { max-width: 220px; }
+  .wizard-actions .btn { flex: 1; }
 }
