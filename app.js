@@ -614,8 +614,8 @@ function calculateKPIsMonthly(s = state) {
       coberturaJuros: safeDiv(ebitAcumulado, despesasEmprestimosAcumulado),
       giroAtivo: safeDiv(m.receitaLiquida, ativoTotal),
       rotatividadeEstoque: safeDiv(m.cmv, b.estoque),
-      ncgReceita: safeDiv(ncg, m.receitaLiquida),
-      tesourariaReceita: safeDiv(tesouraria, m.receitaLiquida),
+      ncgValor: ncg,
+      tesourariaValor: tesouraria,
       cdgNcg: safeDiv(cdg, ncg),
       pmr: s.pmr,
       pmp: s.pmp,
@@ -644,8 +644,8 @@ function renderMonthlyKPIs() {
     { key: 'coberturaJuros', label: 'Cobertura de Juros', cls: 'pos', fmt: 'multiple' },
     { key: 'giroAtivo', label: 'Giro do Ativo', cls: 'pos', fmt: 'multiple' },
     { key: 'rotatividadeEstoque', label: 'Rotatividade de Estoque', cls: 'pos', fmt: 'multiple' },
-    { key: 'ncgReceita', label: 'NCG / Receita', cls: 'neg', fmt: 'percent' },
-    { key: 'tesourariaReceita', label: 'Tesouraria / Receita', cls: 'pos', fmt: 'percent' },
+    { key: 'ncgValor', label: 'NCG (R$)', cls: 'neg', fmt: 'currency' },
+    { key: 'tesourariaValor', label: 'Tesouraria (R$)', cls: 'pos', fmt: 'currency' },
     { key: 'cdgNcg', label: 'CDG / NCG', cls: 'pos', fmt: 'ratio' },
     { key: 'pmr', label: 'PMR (dias)', cls: 'sub', fmt: 'days' },
     { key: 'pmp', label: 'PMP (dias)', cls: 'sub', fmt: 'days' },
@@ -654,6 +654,7 @@ function renderMonthlyKPIs() {
 
   const fmtValue = (v, fmt) => {
     if (v === null || Number.isNaN(v)) return '—';
+    if (fmt === 'currency') return formatCurrency(v);
     if (fmt === 'percent') return formatPercent(v * 100);
     if (fmt === 'ratio') return v.toFixed(2).replace('.', ',');
     if (fmt === 'multiple') return `${v.toFixed(1).replace('.', ',')}x`;
@@ -1766,15 +1767,21 @@ function renderMonthlyTable() {
     { key: 'receitaBruta', label: 'Receita Bruta', cls: 'pos' },
     { key: 'deducoes', label: '(−) Deduções/Impostos', cls: 'neg', get: (m) => m.receitaBruta - m.receitaLiquida },
     { key: 'receitaLiquida', label: 'Receita Líquida', cls: 'total' },
+    { key: 'pctCmv', label: 'CMV % da Receita Líquida', cls: 'pct', get: (m) => m.cmv / m.receitaLiquida, format: 'percent' },
     { key: 'cmv', label: '(−) CMV', cls: 'neg', get: (m) => m.cmv },
+    { key: 'pctLucroBruto', label: 'Margem Bruta', cls: 'pct', get: (m) => m.lucroBruto / m.receitaLiquida, format: 'percent' },
     { key: 'lucroBruto', label: 'Lucro Bruto', cls: 'sub' },
     { key: 'despesasOperacionais', label: '(−) Despesas Operacionais', cls: 'neg', get: (m) => m.despesasOperacionais },
+    { key: 'pctEbitda', label: 'Margem EBITDA', cls: 'pct', get: (m) => m.ebitda / m.receitaLiquida, format: 'percent' },
     { key: 'ebitda', label: 'EBITDA', cls: 'sub' },
     { key: 'depreciacao', label: '(−) Depreciação', cls: 'neg', get: (m) => m.depreciacao },
+    { key: 'pctEbit', label: 'Margem EBIT', cls: 'pct', get: (m) => m.ebit / m.receitaLiquida, format: 'percent' },
     { key: 'ebit', label: 'EBIT', cls: 'sub' },
     { key: 'despesasEmprestimos', label: '(−) Despesas com Empréstimos', cls: 'neg', get: (m) => m.despesasEmprestimos },
+    { key: 'pctLair', label: 'Margem LAIR', cls: 'pct', get: (m) => m.laIR / m.receitaLiquida, format: 'percent' },
     { key: 'laIR', label: 'LAIR', cls: 'sub' },
     { key: 'ir', label: '(−) IR/CSLL', cls: 'neg', get: (m) => m.ir },
+    { key: 'pctLucroLiquido', label: 'Margem Líquida', cls: 'pct', get: (m) => m.lucroLiquido / m.receitaLiquida, format: 'percent' },
     { key: 'lucroLiquido', label: 'Lucro Líquido', cls: 'total' },
   ];
 
@@ -1782,7 +1789,8 @@ function renderMonthlyTable() {
     .map((r) => {
       const monthlyValues = monthly.map((m) => {
         const v = r.get ? r.get(m) : m[r.key];
-        return `<td>${formatCurrency(v)}</td>`;
+        const formatted = r.format === 'percent' ? formatPercentView(v * 100) : formatCurrency(v);
+        return `<td>${formatted}</td>`;
       }).join('');
       return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
     })

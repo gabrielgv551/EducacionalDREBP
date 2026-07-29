@@ -587,6 +587,9 @@ body {
 .monthly-dre-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
 .monthly-dre-table tbody tr.total td { background: rgba(56,189,248,0.12); font-weight: 700; color: var(--accent); }
 .monthly-dre-table tbody tr.sub td { color: var(--text-muted); }
+.monthly-dre-table tbody tr.pct td { color: var(--accent-4); font-style: italic; font-size: 0.8rem; }
+.monthly-dre-table tbody tr.pct td:first-child { font-weight: 600; }
+.monthly-dre-table tbody tr.pct td:not(:first-child) { font-weight: 700; }
 .monthly-dre-table tbody tr.pos td:not(:first-child) { color: var(--success); }
 .monthly-dre-table tbody tr.neg td:not(:first-child) { color: var(--danger); }
 
