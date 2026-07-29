@@ -93,6 +93,102 @@ function getOtherAccountsTotal(accounts, group, excludeId) {
     .reduce((acc, a) => acc + (parseFloat(a.value) || 0), 0);
 }
 
+function accountMatches(name, ...terms) {
+  const n = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return terms.some((t) => n.includes(t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
+}
+
+function resolveAccountValue(name, group, baseValue, m, dec) {
+  const v = parseFloat(baseValue) || 0;
+
+  if (group === 'ativoCirculante') {
+    if (accountMatches(name, 'aplicação', 'aplicacao', 'aplicacoes', 'aplicações')) {
+      return v * 1.1; // rendimento 10% a.a.
+    }
+    if (accountMatches(name, 'título', 'titulo', 'contas a receber', 'receber')) {
+      return dec.receitaLiquida * (m.pmr / 30);
+    }
+    if (accountMatches(name, 'estoque')) {
+      return dec.cmv * (m.pme / 30);
+    }
+  }
+
+  if (group === 'ativoNaoCirculante') {
+    if (accountMatches(name, 'imobilizado', 'máquina', 'maquina', 'equipamento', 'veículo', 'veiculo', 'frota', 'móvel', 'movel', 'instalação', 'instalacao')) {
+      return Math.max(0, v - m.depreciacao);
+    }
+    if (accountMatches(name, 'intangível', 'intangivel', 'software', 'patente', 'marca')) {
+      return Math.max(0, v - m.depreciacao * 0.5); // amortização simplificada
+    }
+  }
+
+  if (group === 'passivoCirculante') {
+    if (accountMatches(name, 'contas a pagar', 'fornecedor', 'fornecedores', 'obrigação social', 'obrigacao social', 'fgts', 'inss')) {
+      return dec.cmv * (m.pmp / 30);
+    }
+  }
+
+  if (group === 'passivoNaoCirculante') {
+    if (accountMatches(name, 'empréstimo', 'emprestimo', 'financiamento')) {
+      return Math.max(0, v - m.despesasEmprestimos);
+    }
+  }
+
+  return v;
+}
+
+function getResolvedAccountValue(accounts, group, id, m, dec) {
+  const account = accounts[group].find((a) => a.id === id);
+  if (!account) return 0;
+  return resolveAccountValue(account.name, group, account.value, m, dec);
+}
+
+function sumResolvedAccounts(accounts, group, m, dec) {
+  return accounts[group].reduce((acc, a) => acc + resolveAccountValue(a.name, group, a.value, m, dec), 0);
+}
+
+function getOtherResolvedAccountsTotal(accounts, group, excludeId, m, dec) {
+  return accounts[group]
+    .filter((a) => a.id !== excludeId)
+    .reduce((acc, a) => acc + resolveAccountValue(a.name, group, a.value, m, dec), 0);
+}
+
+function accountIsDynamic(name, group) {
+  if (group === 'ativoCirculante') {
+    return accountMatches(name, 'aplicação', 'aplicacao', 'aplicacoes', 'aplicações', 'título', 'titulo', 'contas a receber', 'receber', 'estoque');
+  }
+  if (group === 'ativoNaoCirculante') {
+    return accountMatches(name, 'imobilizado', 'máquina', 'maquina', 'equipamento', 'veículo', 'veiculo', 'frota', 'móvel', 'movel', 'instalação', 'instalacao', 'intangível', 'intangivel', 'software', 'patente', 'marca');
+  }
+  if (group === 'passivoCirculante') {
+    return accountMatches(name, 'contas a pagar', 'fornecedor', 'fornecedores', 'obrigação social', 'obrigacao social', 'fgts', 'inss');
+  }
+  if (group === 'passivoNaoCirculante') {
+    return accountMatches(name, 'empréstimo', 'emprestimo', 'financiamento');
+  }
+  return false;
+}
+
+function resolveAccountDescription(name, group, baseValue, m, dec) {
+  const v = parseFloat(baseValue) || 0;
+  if (group === 'ativoCirculante') {
+    if (accountMatches(name, 'aplicação', 'aplicacao', 'aplicacoes', 'aplicações')) return 'Valor informado + rendimento de 10% ao ano.';
+    if (accountMatches(name, 'título', 'titulo', 'contas a receber', 'receber')) return `Receita Líquida de dezembro × PMR ÷ 30 = ${formatCurrency(dec.receitaLiquida)} × ${m.pmr} ÷ 30`;
+    if (accountMatches(name, 'estoque')) return `CMV de dezembro × PME ÷ 30 = ${formatCurrency(dec.cmv)} × ${m.pme} ÷ 30`;
+  }
+  if (group === 'ativoNaoCirculante') {
+    if (accountMatches(name, 'imobilizado', 'máquina', 'maquina', 'equipamento', 'veículo', 'veiculo', 'frota', 'móvel', 'movel', 'instalação', 'instalacao')) return `Valor informado menos depreciação anual = ${formatCurrency(v)} − ${formatCurrency(m.depreciacao)}`;
+    if (accountMatches(name, 'intangível', 'intangivel', 'software', 'patente', 'marca')) return `Valor informado menos amortização anual simplificada = ${formatCurrency(v)} − ${formatCurrency(m.depreciacao * 0.5)}.`;
+  }
+  if (group === 'passivoCirculante') {
+    if (accountMatches(name, 'contas a pagar', 'fornecedor', 'fornecedores', 'obrigação social', 'obrigacao social', 'fgts', 'inss')) return `CMV de dezembro × PMP ÷ 30 = ${formatCurrency(dec.cmv)} × ${m.pmp} ÷ 30`;
+  }
+  if (group === 'passivoNaoCirculante') {
+    if (accountMatches(name, 'empréstimo', 'emprestimo', 'financiamento')) return `Valor informado menos amortização simplificada dos juros = ${formatCurrency(v)} − ${formatCurrency(m.despesasEmprestimos)}`;
+  }
+  return 'Valor informado nas premissas do balanço.';
+}
+
 const inputs = {};
 const displays = {};
 
@@ -219,21 +315,21 @@ function calculateBalanco(dre, s = state) {
 function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const monthlyDRE = calculateDREMonthly(s);
   const daysInMonth = 30;
-  const m0 = monthlyDRE[0];
-  const cr0 = m0.receitaLiquida * (s.pmr / daysInMonth);
-  const est0 = m0.cmv * (s.pme / daysInMonth);
-  const cp0 = m0.cmv * (s.pmp / daysInMonth);
+  const dec = monthlyDRE[monthlyDRE.length - 1];
+  const cr0 = dec.receitaLiquida * (s.pmr / daysInMonth);
+  const est0 = dec.cmv * (s.pme / daysInMonth);
+  const cp0 = dec.cmv * (s.pmp / daysInMonth);
 
-  const caixaInicial = getAccountValue(accounts, 'ativoCirculante', 'caixaInicial');
-  const outrasAtivoCirculante = getOtherAccountsTotal(accounts, 'ativoCirculante', 'caixaInicial');
-  const totalAtivoNaoCirculante = sumAccounts(accounts.ativoNaoCirculante);
-  const totalPassivoCirculanteInformado = sumAccounts(accounts.passivoCirculante);
-  const totalPassivoNaoCirculante = sumAccounts(accounts.passivoNaoCirculante);
-  const totalPatrimonioLiquidoInformado = sumAccounts(accounts.patrimonioLiquido);
+  const caixaInicial = getResolvedAccountValue(accounts, 'ativoCirculante', 'caixaInicial', s, dec);
+  const outrasAtivoCirculante = getOtherResolvedAccountsTotal(accounts, 'ativoCirculante', 'caixaInicial', s, dec);
+  const totalAtivoNaoCirculante = sumResolvedAccounts(accounts, 'ativoNaoCirculante', s, dec);
+  const totalPassivoCirculanteInformado = sumResolvedAccounts(accounts, 'passivoCirculante', s, dec);
+  const totalPassivoNaoCirculante = sumResolvedAccounts(accounts, 'passivoNaoCirculante', s, dec);
+  const totalPatrimonioLiquidoInformado = sumResolvedAccounts(accounts, 'patrimonioLiquido', s, dec);
 
   // O caixa inicial é o saldo de caixa do exercício anterior. Ele é financiado pelos lucros acumulados iniciais.
   const lucrosAcumuladosIniciais = caixaInicial + outrasAtivoCirculante + cr0 + est0 + totalAtivoNaoCirculante
-    - cp0 - totalPassivoCirculanteInformado - totalPassivoNaoCirculante - totalPatrimonioLiquidoInformado - m0.lucroLiquido;
+    - cp0 - totalPassivoCirculanteInformado - totalPassivoNaoCirculante - totalPatrimonioLiquidoInformado - monthlyDRE[0].lucroLiquido;
 
   return monthlyDRE.map((m, i) => {
     const contasReceber = m.receitaLiquida * (s.pmr / daysInMonth);
@@ -790,19 +886,20 @@ function renderCompareDRE(dre) {
 function updateBalanco() {
   const dre = calculateDRE();
   const b = calculateBalanco(dre);
+  const dec = calculateDREMonthly()[11];
 
   const ativoCirculanteContas = balanceAccounts.ativoCirculante
     .filter((acc) => acc.id !== 'caixaInicial')
-    .map((acc) => [acc.name, getAccountValue(balanceAccounts, 'ativoCirculante', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
-  const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante.map((acc) => [acc.name, getAccountValue(balanceAccounts, 'ativoNaoCirculante', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
-  const passivoCirculanteContas = balanceAccounts.passivoCirculante.map((acc) => [acc.name, getAccountValue(balanceAccounts, 'passivoCirculante', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
-  const passivoNaoCirculanteContas = balanceAccounts.passivoNaoCirculante.map((acc) => [acc.name, getAccountValue(balanceAccounts, 'passivoNaoCirculante', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
-  const patrimonioLiquidoContas = balanceAccounts.patrimonioLiquido.map((acc) => [acc.name, getAccountValue(balanceAccounts, 'patrimonioLiquido', acc.id), acc.id, 'Valor informado nas premissas do balanço.']);
+    .map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'ativoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'ativoCirculante', acc.value, state, dec)]);
+  const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'ativoNaoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'ativoNaoCirculante', acc.value, state, dec)]);
+  const passivoCirculanteContas = balanceAccounts.passivoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoCirculante', acc.value, state, dec)]);
+  const passivoNaoCirculanteContas = balanceAccounts.passivoNaoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoNaoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoNaoCirculante', acc.value, state, dec)]);
+  const patrimonioLiquidoContas = balanceAccounts.patrimonioLiquido.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'patrimonioLiquido', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'patrimonioLiquido', acc.value, state, dec)]);
 
   const ativoItems = [
     ['Caixa', b.caixa, 'caixa', 'Saldo de caixa de fechamento de dezembro. Calculado como resíduo para garantir Ativo = Passivo + PL.'],
-    ['Contas a Receber', b.contasReceber, 'receber', `Receita Líquida de dezembro × PMR ÷ 30 = ${formatCurrency(dre.receitaLiquida / 12 * Math.pow(1 + state.sazonalidade / 100, 11))} × ${state.pmr} ÷ 30`],
-    ['Estoque', b.estoque, 'estoque', `CMV de dezembro × PME ÷ 30 = ${formatCurrency(dre.cmv / 12 * Math.pow(1 + state.sazonalidade / 100, 11))} × ${state.pme} ÷ 30`],
+    ['Contas a Receber', b.contasReceber, 'receber', `Receita Líquida de dezembro × PMR ÷ 30 = ${formatCurrency(dec.receitaLiquida)} × ${state.pmr} ÷ 30`],
+    ['Estoque', b.estoque, 'estoque', `CMV de dezembro × PME ÷ 30 = ${formatCurrency(dec.cmv)} × ${state.pme} ÷ 30`],
     ...ativoCirculanteContas,
   ];
   const anItems = ativoNaoCirculanteContas;
@@ -812,7 +909,7 @@ function updateBalanco() {
   document.getElementById('totalAtivo').textContent = `Total Ativo: ${formatCurrency(b.ativoTotal)}`;
 
   const passivoItems = [
-    ['Contas a Pagar', b.contasPagar, 'pagar', `CMV × PMP ÷ 365 = ${formatCurrency(dre.cmv)} × ${state.pmp} ÷ 365`],
+    ['Contas a Pagar', b.contasPagar, 'pagar', `CMV de dezembro × PMP ÷ 30 = ${formatCurrency(dec.cmv)} × ${state.pmp} ÷ 30`],
     ...passivoCirculanteContas,
   ];
   const pnpItems = passivoNaoCirculanteContas;
@@ -928,6 +1025,7 @@ function renderBalancePremissas(direction = 'none') {
   const group = groupKeys[currentBalanceStep];
   const meta = groupMeta[group];
   const accounts = balanceAccounts[group];
+  const dec = calculateDREMonthly()[11];
   const total = sumAccounts(accounts);
 
   content.className = `wizard-content ${direction === 'next' ? 'animate-in-right' : direction === 'prev' ? 'animate-in-left' : ''}`;
@@ -952,14 +1050,23 @@ function renderBalancePremissas(direction = 'none') {
         ? `<div class="empty-account-hint">Nenhuma conta nesta fase. Adicione uma conta para começar! 🚀</div>`
         : accounts
             .map(
-              (acc, index) => `
-        <div class="account-item ${meta.side}" data-group="${group}" data-index="${index}">
-          <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
-          <input type="text" class="account-value" value="${formatAccountingInput(acc.value)}" data-field="value" inputmode="decimal" placeholder="R$" />
-          <div class="account-actions">
-            ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
+              (acc, index) => {
+                const resolved = resolveAccountValue(acc.name, group, acc.value, state, dec);
+                const dynamic = accountIsDynamic(acc.name, group);
+                const dynamicDesc = resolveAccountDescription(acc.name, group, acc.value, state, dec);
+                return `
+        <div class="account-item ${meta.side} ${dynamic ? 'dynamic' : ''}" data-group="${group}" data-index="${index}" title="${dynamic ? dynamicDesc.replace(/"/g, '&quot;') : ''}">
+          <div class="account-main">
+            <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
+            <input type="text" class="account-value ${dynamic ? 'dynamic-input' : ''}" value="${formatAccountingInput(acc.value)}" data-field="value" inputmode="decimal" placeholder="${dynamic ? 'Saldo inicial R$' : 'R$'}" ${dynamic ? 'data-tooltip="Valor base usado no cálculo automático"' : ''} />
+            <div class="account-actions">
+              ${dynamic ? `<span class="dynamic-badge" title="${dynamicDesc.replace(/"/g, '&quot;')}">⚡ Automático</span>` : ''}
+              ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
+            </div>
           </div>
-        </div>`
+          ${dynamic ? `<div class="account-resolved"><span class="resolved-label">Valor calculado:</span> <span class="resolved-value">${formatCurrency(resolved)}</span><span class="resolved-formula">${dynamicDesc}</span></div>` : ''}
+        </div>`;
+              }
             )
             .join('')}
     </div>
@@ -1816,8 +1923,8 @@ function initQRCode() {
     container.innerHTML = '';
     qr = new QRCode(container, {
       text: url,
-      width: 220,
-      height: 220,
+      width: 280,
+      height: 280,
       colorDark: '#0f172a',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.M,

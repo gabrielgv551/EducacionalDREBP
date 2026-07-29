@@ -39,6 +39,7 @@ body {
 
 .brand { display: flex; align-items: center; gap: 12px; }
 .logo { font-size: 2rem; color: var(--accent); }
+.logo-img { height: 44px; width: auto; display: block; }
 .brand h1 { margin: 0; font-size: 1.6rem; }
 
 .brand-row {
@@ -91,7 +92,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 24px;
   padding: 32px;
-  max-width: 380px;
+  max-width: 460px;
   width: 100%;
   text-align: center;
   box-shadow: var(--shadow);
@@ -104,14 +105,14 @@ body {
 .qr-code-wrap {
   display: inline-flex;
   justify-content: center;
-  padding: 16px;
+  padding: 20px;
   background: #fff;
   border-radius: 16px;
   margin-bottom: 16px;
 }
 
 .qr-code-wrap img,
-.qr-code-wrap canvas { display: block; }
+.qr-code-wrap canvas { display: block; max-width: 100%; height: auto; }
 
 .qr-url {
   color: var(--text-muted);
@@ -1096,10 +1097,9 @@ body {
 .account-list { display: flex; flex-direction: column; gap: 14px; }
 
 .account-item {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 14px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   background: linear-gradient(135deg, rgba(30,41,59,0.8) 0%, rgba(15,23,42,0.8) 100%);
   border: 1px solid var(--border);
   border-left: 4px solid var(--accent);
@@ -1109,11 +1109,67 @@ body {
   position: relative;
 }
 
+.account-main {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.account-item.dynamic {
+  border-left-color: var(--accent-4);
+  background: linear-gradient(135deg, rgba(56,189,248,0.08) 0%, rgba(15,23,42,0.8) 100%);
+}
+
+.account-item.dynamic:hover { border-color: var(--accent-4); box-shadow: 0 8px 24px rgba(251,191,36,0.15); }
+
+.account-item input[type="text"].account-value.dynamic-input {
+  border-color: var(--accent-4);
+  background: rgba(251,191,36,0.08);
+}
+
+.account-item input[type="text"].account-value.dynamic-input:focus {
+  border-color: var(--accent-4);
+  box-shadow: 0 0 0 3px rgba(251,191,36,0.15);
+}
+
+.dynamic-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251,191,36,0.15);
+  border: 1px solid var(--accent-4);
+  color: var(--accent-4);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.account-resolved {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 12px 14px;
+  background: rgba(15,23,42,0.7);
+  border-radius: 12px;
+  border: 1px dashed var(--accent-4);
+  font-size: 0.9rem;
+}
+
+.resolved-label { color: var(--text-muted); font-weight: 600; }
+.resolved-value { color: var(--accent-2); font-weight: 800; font-variant-numeric: tabular-nums; }
+.resolved-formula { color: var(--accent-4); font-size: 0.8rem; font-style: italic; flex: 1 1 100%; }
+
 .account-item:hover {
   border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 }
+
+.account-item.dynamic:hover { border-color: var(--accent-4); box-shadow: 0 8px 24px rgba(251,191,36,0.15); }
 
 .account-item.ativo { border-left-color: var(--accent-2); }
 .account-item.ativo:hover { border-color: var(--accent-2); box-shadow: 0 8px 24px rgba(52,211,153,0.12); }
