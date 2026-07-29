@@ -69,6 +69,11 @@
         <span class="step-number">5</span>
         <span class="step-label">Capital de Giro</span>
       </button>
+      <span class="step-arrow" aria-hidden="true">→</span>
+      <button class="nav-btn" data-tab="kpis">
+        <span class="step-number">6</span>
+        <span class="step-label">KPIs</span>
+      </button>
       <span class="step-arrow learn" aria-hidden="true">→</span>
       <button class="nav-btn learn" data-tab="aprender">
         <span class="step-number">★</span>
@@ -120,6 +125,11 @@
             <label for="despesasVariaveis">Despesas variáveis (% da receita líquida)</label>
             <input type="range" id="despesasVariaveis" min="0" max="40" step="0.5" />
             <div class="input-value"><span id="valDespesasVariaveis"></span></div>
+          </div>
+          <div class="input-group">
+            <label for="despesasEmprestimos">Despesas com empréstimos anuais (R$)</label>
+            <input type="range" id="despesasEmprestimos" min="0" max="2000000" step="25000" />
+            <div class="input-value"><span id="valDespesasEmprestimos"></span></div>
           </div>
         </div>
         <div class="card">
@@ -468,6 +478,39 @@
       </div>
       <div class="module-nav">
         <button class="btn secondary prev-btn" data-prev="balanco"><span>←</span> Voltar</button>
+        <button class="btn primary next-btn" data-next="kpis">Próximo <span>→</span></button>
+      </div>
+    </section>
+
+    <!-- KPIs -->
+    <section id="tab-kpis" class="tab-panel">
+      <div class="panel-header">
+        <h2>KPIs Financeiros</h2>
+        <p class="hint">Indicadores calculados a partir da DRE, do Balanço e do Capital de Giro.</p>
+      </div>
+      <div class="card flow-diagram center">
+        <div class="flow-step">DRE</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Balanço</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Capital de Giro</div><span class="flow-arrow">→</span>
+        <div class="flow-step">KPIs</div>
+      </div>
+      <div class="card">
+        <h3>Tabela de Indicadores</h3>
+        <div class="kpis-table-wrap">
+          <table class="kpis-table" id="kpisTable">
+            <thead>
+              <tr><th>Grupo</th><th>KPI</th><th>Valor</th><th>Fórmula / Avaliação</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="kpis-legend" id="kpisLegend"></div>
+      </div>
+      <div class="card feedback" id="feedbackKpis">
+        <strong>Feedback KPIs:</strong> <span></span>
+      </div>
+      <div class="module-nav">
+        <button class="btn secondary prev-btn" data-prev="giro"><span>←</span> Voltar</button>
         <button class="btn primary next-btn" data-next="aprender">Próximo <span>→</span></button>
       </div>
     </section>

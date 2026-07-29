@@ -33,6 +33,7 @@ const defaultState = {
   cmvPercent: 45,
   despesasFixas: 800_000,
   despesasVariaveis: 12,
+  despesasEmprestimos: 120_000,
   pmr: 45,
   pme: 35,
   pmp: 30,
@@ -104,6 +105,7 @@ const inputDefs = [
   ['cmvPercent', 'valCmvPercent', () => formatPercentView(state.cmvPercent)],
   ['despesasFixas', 'valDespesasFixas', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasFixas) : formatCurrency(state.despesasFixas)],
   ['despesasVariaveis', 'valDespesasVariaveis', () => formatPercentView(state.despesasVariaveis)],
+  ['despesasEmprestimos', 'valDespesasEmprestimos', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasEmprestimos) : formatCurrency(state.despesasEmprestimos)],
   ['pmr', 'valPmr', (v) => `${v} dias`],
   ['pme', 'valPme', (v) => `${v} dias`],
   ['pmp', 'valPmp', (v) => `${v} dias`],
@@ -164,8 +166,8 @@ function calculateDRE(s = state) {
     ebitda: sum('ebitda'),
     depreciacao: sum('depreciacao'),
     ebit: sum('ebit'),
-    resultadoFinanceiro: 0,
-    laIR: sum('ebit'),
+    despesasEmprestimos: sum('despesasEmprestimos'),
+    laIR: sum('laIR'),
     ir: sum('ir'),
     lucroLiquido: sum('lucroLiquido'),
   };
@@ -176,6 +178,7 @@ function calculateDREMonthly(s = state) {
   const baseReceita = s.receitaBruta / 12;
   const baseDespesasFixas = s.despesasFixas / 12;
   const baseDepreciacao = s.depreciacao / 12;
+  const baseDespesasEmprestimos = s.despesasEmprestimos / 12;
   return months.map((month, i) => {
     const factor = Math.pow(1 + s.sazonalidade / 100, i);
     const receitaBruta = baseReceita * factor;
@@ -186,7 +189,8 @@ function calculateDREMonthly(s = state) {
     const despesasOperacionais = baseDespesasFixas + despesasVariaveis;
     const ebitda = lucroBruto - despesasOperacionais;
     const ebit = ebitda - baseDepreciacao;
-    const laIR = ebit;
+    const despesasEmprestimos = baseDespesasEmprestimos;
+    const laIR = ebit - despesasEmprestimos;
     const ir = Math.max(0, laIR * 0.34);
     const lucroLiquido = laIR - ir;
     return {
@@ -199,6 +203,8 @@ function calculateDREMonthly(s = state) {
       ebitda,
       depreciacao: baseDepreciacao,
       ebit,
+      despesasEmprestimos,
+      laIR,
       ir,
       lucroLiquido,
     };
@@ -296,6 +302,7 @@ function renderDreTable(tableId, indicatorsId, dre, divisor) {
     ['EBITDA', dre.ebitda / divisor, 'sub', 'Resultado operacional antes de depreciação e impostos.', 'EBITDA'],
     ['(−) Depreciação', -dre.depreciacao / divisor, 'neg', 'Custo do desgaste de ativos imobilizados.', ''],
     ['EBIT', dre.ebit / divisor, 'sub', 'Lucro operacional antes de juros e impostos.', 'EBIT'],
+    ['(−) Despesas com Empréstimos', -dre.despesasEmprestimos / divisor, 'neg', 'Juros e encargos financeiros com empréstimos.', 'Despesas com Empréstimos'],
     ['(−) IR/CSLL', -dre.ir / divisor, 'neg', 'Tributos sobre o lucro.', ''],
     ['Lucro Líquido', dre.lucroLiquido / divisor, 'total', 'Resultado final disponível para os acionistas.', 'Lucro Líquido'],
   ];
@@ -337,6 +344,7 @@ function renderWaterfall(dre) {
     ['CMV', -dre.cmv / divisor, 'neg'],
     ['Desp. Op.', -dre.despesasOperacionais / divisor, 'neg'],
     ['Deprec.', -dre.depreciacao / divisor, 'neg'],
+    ['Emprést.', -dre.despesasEmprestimos / divisor, 'neg'],
     ['IR/CSLL', -dre.ir / divisor, 'neg'],
     ['Lucro Líquido', dre.lucroLiquido / divisor, 'total'],
   ];
@@ -1075,6 +1083,7 @@ const glossaryTerms = {
   'CMV': 'Custo da Mercadoria Vendida. Representa o custo dos produtos/serviços vendidos no período.',
   'EBITDA': 'Lucro antes de juros, impostos, depreciação e amortização. Indica a geração de caixa operacional.',
   'EBIT': 'Lucro operacional antes de juros e impostos. Mostra a rentabilidade do negócio sem efeito financeiro.',
+  'Despesas com Empréstimos': 'Juros e encargos financeiros pagos sobre empréstimos e financiamentos. Reduzem o lucro antes do IR.',
   'Lucro Líquido': 'Resultado final da empresa após todos os custos, despesas e tributos.',
   'PMR': 'Prazo Médio de Recebimento: quantos dias, em média, a empresa demora para receber de clientes.',
   'PME': 'Prazo Médio de Estoque: quantos dias, em média, a mercadoria fica parada antes de ser vendida.',
@@ -1357,6 +1366,7 @@ function renderMonthlyTable() {
     { key: 'ebitda', label: 'EBITDA', cls: 'sub' },
     { key: 'depreciacao', label: '(−) Depreciação', cls: 'neg', get: (m) => m.depreciacao },
     { key: 'ebit', label: 'EBIT', cls: 'sub' },
+    { key: 'despesasEmprestimos', label: '(−) Despesas com Empréstimos', cls: 'neg', get: (m) => m.despesasEmprestimos },
     { key: 'ir', label: '(−) IR/CSLL', cls: 'neg', get: (m) => m.ir },
     { key: 'lucroLiquido', label: 'Lucro Líquido', cls: 'total' },
   ];
