@@ -1026,7 +1026,7 @@ function renderBalancePremissas(direction = 'none') {
   const meta = groupMeta[group];
   const accounts = balanceAccounts[group];
   const dec = calculateDREMonthly()[11];
-  const total = sumAccounts(accounts);
+  const total = sumResolvedAccounts(balanceAccounts, group, state, dec);
 
   content.className = `wizard-content ${direction === 'next' ? 'animate-in-right' : direction === 'prev' ? 'animate-in-left' : ''}`;
 
@@ -1154,7 +1154,7 @@ function renderBalancePremissas(direction = 'none') {
 }
 
 function renderWizardCompletion(groupKeys, groupMeta, totalAccounts, xp) {
-  const totals = groupKeys.map((k) => ({ label: groupMeta[k].label, icon: groupMeta[k].icon, value: sumAccounts(balanceAccounts[k]), color: groupMeta[k].color }));
+  const totals = groupKeys.map((k) => ({ label: groupMeta[k].label, icon: groupMeta[k].icon, value: sumResolvedAccounts(balanceAccounts, k, state, calculateDREMonthly()[11]), color: groupMeta[k].color }));
   const grandTotal = totals.reduce((acc, t) => acc + t.value, 0);
   return `
     <div class="wizard-completion">
