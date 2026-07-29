@@ -1797,6 +1797,49 @@ function renderMonthlyTable() {
     .join('');
 }
 
+function initQRCode() {
+  const btn = document.getElementById('qrBtn');
+  const modal = document.getElementById('qrModal');
+  const close = document.getElementById('qrModalClose');
+  if (!btn || !modal || !close || typeof QRCode === 'undefined') return;
+
+  let qr;
+  const generate = () => {
+    const container = document.getElementById('qrcode');
+    const urlEl = document.getElementById('qrUrl');
+    if (!container || !urlEl) return;
+    const isLocal = window.location.protocol === 'file:';
+    const url = isLocal
+      ? 'https://gabrielgv551.github.io/EducacionalDREBP/'
+      : window.location.href.split('?')[0];
+    urlEl.textContent = url;
+    container.innerHTML = '';
+    qr = new QRCode(container, {
+      text: url,
+      width: 220,
+      height: 220,
+      colorDark: '#0f172a',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+  };
+
+  btn.addEventListener('click', () => {
+    if (!containerHasQR()) generate();
+    modal.classList.add('open');
+  });
+
+  close.addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('open');
+  });
+
+  function containerHasQR() {
+    const container = document.getElementById('qrcode');
+    return container && (container.querySelector('img') || container.querySelector('canvas'));
+  }
+}
+
 function init() {
   initOnboarding();
   initTabs();
@@ -1809,6 +1852,7 @@ function init() {
   renderMonthlyTable();
   initInlineTooltips();
   initAprender();
+  initQRCode();
   updateAll();
 }
 

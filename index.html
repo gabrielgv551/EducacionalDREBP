@@ -39,9 +39,23 @@
   </div>
 
   <header class="app-header">
-    <div class="brand">
-      <span class="logo">◈</span>
-      <h1>FinSim</h1>
+    <div class="brand-row">
+      <div class="brand">
+        <span class="logo">◈</span>
+        <h1>FinSim</h1>
+      </div>
+      <button class="qr-btn" id="qrBtn" title="Compartilhar QR Code">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <path d="M14 14h7v7h-7z" />
+          <path d="M14 14v7" />
+          <path d="M21 14v7" />
+          <path d="M14 21h7" />
+        </svg>
+        <span>Compartilhar</span>
+      </button>
     </div>
     <p class="tagline">DRE Gerencial · Balanço Patrimonial · Capital de Giro</p>
     <nav class="stepper" id="mainNav" aria-label="Etapas do fluxo financeiro">
@@ -563,6 +577,18 @@
     <p>FinSim — app educacional para finanças corporativas</p>
   </footer>
 
+  <!-- QR Code Modal -->
+  <div class="qr-modal-overlay" id="qrModal">
+    <div class="qr-modal-card">
+      <button class="qr-modal-close" id="qrModalClose" aria-label="Fechar">×</button>
+      <h3>Compartilhe o FinSim</h3>
+      <p class="qr-modal-hint">Aponte a câmera do celular para acessar:</p>
+      <div class="qr-code-wrap" id="qrcode"></div>
+      <div class="qr-url" id="qrUrl"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

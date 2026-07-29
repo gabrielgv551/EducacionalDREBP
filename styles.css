@@ -41,6 +41,109 @@ body {
 .logo { font-size: 2rem; color: var(--accent); }
 .brand h1 { margin: 0; font-size: 1.6rem; }
 
+.brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.qr-btn {
+  background: rgba(56,189,248,0.1);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 8px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: .2s;
+}
+
+.qr-btn:hover {
+  background: var(--accent);
+  color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(56,189,248,0.25);
+}
+
+.qr-btn svg { flex-shrink: 0; }
+
+.qr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.92);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.qr-modal-overlay.open { display: flex; animation: fade .25s ease; }
+
+.qr-modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.qr-modal-card h3 { margin: 0 0 8px; color: var(--accent); font-size: 1.25rem; }
+.qr-modal-hint { color: var(--text-muted); margin: 0 0 20px; font-size: 0.95rem; }
+
+.qr-code-wrap {
+  display: inline-flex;
+  justify-content: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 16px;
+  margin-bottom: 16px;
+}
+
+.qr-code-wrap img,
+.qr-code-wrap canvas { display: block; }
+
+.qr-url {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  word-break: break-all;
+  padding: 10px 14px;
+  background: #0f172a;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.qr-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.3rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: .2s;
+}
+
+.qr-modal-close:hover { background: rgba(248,113,113,0.15); border-color: var(--danger); color: var(--danger); }
+
 .tagline { margin: 4px 0 20px; color: var(--text-muted); font-size: 0.95rem; }
 
 .main-nav, .stepper {
