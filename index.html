@@ -164,16 +164,34 @@
     <section id="tab-premissas-balanco" class="tab-panel">
       <div class="panel-header">
         <h2>Premissas do Balanço</h2>
-        <p class="hint">Preencha cada grupo de contas. Use Próximo para avançar.</p>
+        <p class="hint">Monte o balanço patrimonial passo a passo.</p>
       </div>
 
       <div class="balance-wizard" id="balanceWizard">
-        <div class="wizard-progress" id="wizardProgress">
-          <div class="wizard-step-indicator active" data-step="0">Ativo Circulante</div>
-          <div class="wizard-step-indicator" data-step="1">Ativo Não Circulante</div>
-          <div class="wizard-step-indicator" data-step="2">Passivo Circulante</div>
-          <div class="wizard-step-indicator" data-step="3">Passivo Não Circulante</div>
-          <div class="wizard-step-indicator" data-step="4">Patrimônio Líquido</div>
+        <div class="wizard-scoreboard">
+          <div class="score-pill">
+            <span class="score-icon">🏆</span>
+            <span class="score-label">Progresso</span>
+            <span class="score-value" id="wizardProgressText">Fase 1 de 5</span>
+          </div>
+          <div class="score-pill">
+            <span class="score-icon">⭐</span>
+            <span class="score-label">XP</span>
+            <span class="score-value" id="wizardXpText">0</span>
+          </div>
+          <div class="score-pill">
+            <span class="score-icon">📝</span>
+            <span class="score-label">Contas</span>
+            <span class="score-value" id="wizardAccountsText">0</span>
+          </div>
+        </div>
+        <div class="wizard-progress-wrapper">
+          <div class="wizard-progress-bar">
+            <div class="wizard-progress-fill" id="wizardProgressFill"></div>
+          </div>
+          <div class="wizard-progress-steps" id="wizardProgressSteps">
+            <!-- Renderizado via JS -->
+          </div>
         </div>
 
         <div class="wizard-body">
@@ -182,8 +200,12 @@
           </div>
 
           <div class="wizard-actions">
-            <button class="btn secondary" id="wizardPrev">← Voltar</button>
-            <button class="btn primary" id="wizardNext">Próximo →</button>
+            <button class="btn wizard-btn secondary" id="wizardPrev">
+              <span class="btn-icon">←</span> Voltar
+            </button>
+            <button class="btn wizard-btn primary" id="wizardNext">
+              Próximo <span class="btn-icon">→</span>
+            </button>
           </div>
         </div>
       </div>

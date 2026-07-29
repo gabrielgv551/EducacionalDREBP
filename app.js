@@ -452,56 +452,99 @@ function showTrace(item) {
   `;
 }
 
-function renderBalancePremissas() {
+function renderBalancePremissas(direction = 'none') {
   const container = document.getElementById('balanceWizard');
   if (!container) return;
 
   const groupKeys = Object.keys(balanceAccounts);
-  const groupLabels = {
-    ativoCirculante: 'Ativo Circulante',
-    ativoNaoCirculante: 'Ativo Não Circulante',
-    passivoCirculante: 'Passivo Circulante',
-    passivoNaoCirculante: 'Passivo Não Circulante',
-    patrimonioLiquido: 'Patrimônio Líquido',
-  };
-  const groupSubtitles = {
-    ativoCirculante: 'Bens e direitos de curto prazo, como caixa, recebíveis e estoque.',
-    ativoNaoCirculante: 'Bens e direitos de longo prazo, como imobilizado e investimentos.',
-    passivoCirculante: 'Obrigações de curto prazo, como fornecedores e salários.',
-    passivoNaoCirculante: 'Obrigações de longo prazo, como empréstimos e financiamentos.',
-    patrimonioLiquido: 'Recursos próprios da empresa, como capital social e reservas.',
+  const groupMeta = {
+    ativoCirculante: { label: 'Ativo Circulante', icon: '💵', subtitle: 'Bens e direitos de curto prazo, como caixa, recebíveis e estoque.', side: 'ativo', color: 'var(--accent-2)' },
+    ativoNaoCirculante: { label: 'Ativo Não Circulante', icon: '🏭', subtitle: 'Bens e direitos de longo prazo, como imobilizado e investimentos.', side: 'ativo', color: 'var(--accent-2)' },
+    passivoCirculante: { label: 'Passivo Circulante', icon: '💳', subtitle: 'Obrigações de curto prazo, como fornecedores e salários.', side: 'passivo', color: 'var(--danger)' },
+    passivoNaoCirculante: { label: 'Passivo Não Circulante', icon: '📜', subtitle: 'Obrigações de longo prazo, como empréstimos e financiamentos.', side: 'passivo', color: 'var(--danger)' },
+    patrimonioLiquido: { label: 'Patrimônio Líquido', icon: '👑', subtitle: 'Recursos próprios da empresa, como capital social e reservas.', side: 'pl', color: 'var(--accent-3)' },
   };
 
+  const totalAccounts = groupKeys.reduce((acc, k) => acc + balanceAccounts[k].length, 0);
+  const completedSteps = groupKeys.filter((k, i) => i < currentBalanceStep).length;
+  const xp = totalAccounts * 50 + completedSteps * 100;
+
+  const isCompleted = currentBalanceStep >= groupKeys.length;
+  const progressText = isCompleted ? 'Concluído! 🏆' : `Fase ${currentBalanceStep + 1} de ${groupKeys.length}`;
+  const progressPct = isCompleted ? 100 : ((currentBalanceStep + 1) / groupKeys.length) * 100;
+
+  document.getElementById('wizardProgressText').textContent = progressText;
+  document.getElementById('wizardXpText').textContent = xp;
+  document.getElementById('wizardAccountsText').textContent = totalAccounts;
+
+  const progressFill = document.getElementById('wizardProgressFill');
+  if (progressFill) {
+    progressFill.style.width = `${progressPct}%`;
+  }
+
+  const stepsContainer = document.getElementById('wizardProgressSteps');
+  if (stepsContainer) {
+    stepsContainer.innerHTML = groupKeys
+      .map((k, i) => {
+        const meta = groupMeta[k];
+        const state = i === currentBalanceStep ? 'active' : i < currentBalanceStep ? 'completed' : 'locked';
+        return `
+          <div class="wizard-step-indicator ${state}" data-step="${i}" title="${meta.label}">
+            <span class="step-icon">${meta.icon}</span>
+            <span>${meta.label}</span>
+          </div>`;
+      })
+      .join('');
+  }
+
+  updateWizardStepIndicators();
+  attachWizardStepListeners();
+
+  const content = document.getElementById('wizardContent');
+  if (currentBalanceStep >= groupKeys.length) {
+    content.innerHTML = renderWizardCompletion(groupKeys, groupMeta, totalAccounts, xp);
+    content.className = 'wizard-content animate-in-right';
+    updateWizardNavigation();
+    return;
+  }
+
   const group = groupKeys[currentBalanceStep];
+  const meta = groupMeta[group];
   const accounts = balanceAccounts[group];
   const total = sumAccounts(accounts);
 
-  container.querySelectorAll('.wizard-step-indicator').forEach((el, i) => {
-    el.classList.toggle('active', i === currentBalanceStep);
-    el.classList.toggle('completed', i < currentBalanceStep);
-  });
+  content.className = `wizard-content ${direction === 'next' ? 'animate-in-right' : direction === 'prev' ? 'animate-in-left' : ''}`;
 
-  const content = document.getElementById('wizardContent');
   content.innerHTML = `
-    <h3 class="wizard-group-title">${groupLabels[group]}</h3>
-    <p class="wizard-group-subtitle">${groupSubtitles[group]}</p>
-    <div class="wizard-group-total">
+    <div class="wizard-phase-header">
+      <div class="phase-title-wrap">
+        <span class="phase-badge">${meta.icon} Fase ${currentBalanceStep + 1}</span>
+        <h3 class="wizard-group-title" style="color:${meta.color}">
+          <span class="group-icon">${meta.icon}</span>
+          ${meta.label}
+        </h3>
+        <p class="wizard-group-subtitle">${meta.subtitle}</p>
+      </div>
+    </div>
+    <div class="wizard-group-total" style="border-color:${meta.color}">
       <span class="label">Total do grupo</span>
-      <span class="value" id="wizardGroupTotal">${formatCurrency(total)}</span>
+      <span class="value" id="wizardGroupTotal" style="color:${meta.color}">${formatCurrency(total)}</span>
     </div>
     <div class="account-list" data-group="${group}">
-      ${accounts
-        .map(
-          (acc, index) => `
-        <div class="account-item" data-group="${group}" data-index="${index}">
+      ${accounts.length === 0
+        ? `<div class="empty-account-hint">Nenhuma conta nesta fase. Adicione uma conta para começar! 🚀</div>`
+        : accounts
+            .map(
+              (acc, index) => `
+        <div class="account-item ${meta.side}" data-group="${group}" data-index="${index}">
           <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
           <input type="number" class="account-value" value="${acc.value}" data-field="value" min="0" step="1000" placeholder="R$" />
           <div class="account-actions">
             ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
           </div>
         </div>`
-        )
-        .join('')}
+            )
+            .join('')}
     </div>
     <div class="add-account">
       <button class="add-account-btn">+ Adicionar conta</button>
@@ -524,7 +567,7 @@ function renderBalancePremissas() {
       const value = e.target.value;
       balanceAccounts[group][index][field] = field === 'value' ? parseFloat(value) || 0 : value;
       document.getElementById('wizardGroupTotal').textContent = formatCurrency(sumAccounts(balanceAccounts[group]));
-      updateWizardStepIndicators();
+      updateWizardScoreboard();
       updateAll();
     });
   });
@@ -567,6 +610,45 @@ function renderBalancePremissas() {
   updateWizardNavigation();
 }
 
+function renderWizardCompletion(groupKeys, groupMeta, totalAccounts, xp) {
+  const totals = groupKeys.map((k) => ({ label: groupMeta[k].label, icon: groupMeta[k].icon, value: sumAccounts(balanceAccounts[k]), color: groupMeta[k].color }));
+  const grandTotal = totals.reduce((acc, t) => acc + t.value, 0);
+  return `
+    <div class="wizard-completion">
+      <div class="completion-icon">🏆</div>
+      <h3>Balanço Montado!</h3>
+      <p>Você configurou <strong>${totalAccounts} contas</strong> e acumulou <strong>${xp} XP</strong>. O balanço está pronto para gerar os resultados.</p>
+      <div class="completion-stats">
+        ${totals
+          .map(
+            (t) => `
+          <div class="completion-stat">
+            <div class="value" style="color:${t.color}">${t.icon} ${formatCurrency(t.value)}</div>
+            <div class="label">${t.label}</div>
+          </div>`
+          )
+          .join('')}
+      </div>
+      <div class="completion-stats">
+        <div class="completion-stat">
+          <div class="value" style="color:var(--accent)">${formatCurrency(grandTotal)}</div>
+          <div class="label">Total Geral</div>
+        </div>
+      </div>
+      <button class="btn primary" id="wizardFinishBtn">Ver DRE →</button>
+    </div>
+  `;
+}
+
+function updateWizardScoreboard() {
+  const groupKeys = Object.keys(balanceAccounts);
+  const totalAccounts = groupKeys.reduce((acc, k) => acc + balanceAccounts[k].length, 0);
+  const completedSteps = groupKeys.filter((k, i) => i < currentBalanceStep).length;
+  const xp = totalAccounts * 50 + completedSteps * 100;
+  document.getElementById('wizardXpText').textContent = xp;
+  document.getElementById('wizardAccountsText').textContent = totalAccounts;
+}
+
 function updateWizardStepIndicators() {
   const container = document.getElementById('balanceWizard');
   if (!container) return;
@@ -574,6 +656,24 @@ function updateWizardStepIndicators() {
   container.querySelectorAll('.wizard-step-indicator').forEach((el, i) => {
     el.classList.toggle('active', i === currentBalanceStep);
     el.classList.toggle('completed', i < currentBalanceStep);
+    el.classList.toggle('locked', i > currentBalanceStep);
+  });
+}
+
+function attachWizardStepListeners() {
+  const container = document.getElementById('balanceWizard');
+  if (!container) return;
+  container.querySelectorAll('.wizard-step-indicator').forEach((el) => {
+    el.replaceWith(el.cloneNode(true)); // remove listeners antigos
+  });
+  container.querySelectorAll('.wizard-step-indicator').forEach((el) => {
+    el.addEventListener('click', () => {
+      const step = parseInt(el.dataset.step, 10);
+      if (step > currentBalanceStep + 1) return;
+      const direction = step > currentBalanceStep ? 'next' : 'prev';
+      currentBalanceStep = step;
+      renderBalancePremissas(direction);
+    });
   });
 }
 
@@ -583,8 +683,13 @@ function updateWizardNavigation() {
   const nextBtn = document.getElementById('wizardNext');
   if (prevBtn) prevBtn.disabled = currentBalanceStep === 0;
   if (nextBtn) {
-    nextBtn.textContent = currentBalanceStep === groupKeys.length - 1 ? 'Concluir ✓' : 'Próximo →';
-    nextBtn.disabled = false;
+    if (currentBalanceStep >= groupKeys.length) {
+      nextBtn.style.display = 'none';
+    } else {
+      nextBtn.style.display = 'inline-flex';
+      nextBtn.textContent = currentBalanceStep === groupKeys.length - 1 ? 'Concluir ✓' : 'Próximo →';
+      nextBtn.disabled = false;
+    }
   }
 }
 
@@ -592,12 +697,7 @@ function initBalanceWizard() {
   const container = document.getElementById('balanceWizard');
   if (!container) return;
 
-  container.querySelectorAll('.wizard-step-indicator').forEach((el) => {
-    el.addEventListener('click', () => {
-      currentBalanceStep = parseInt(el.dataset.step, 10);
-      renderBalancePremissas();
-    });
-  });
+  attachWizardStepListeners();
 
   const prevBtn = document.getElementById('wizardPrev');
   const nextBtn = document.getElementById('wizardNext');
@@ -606,15 +706,19 @@ function initBalanceWizard() {
   prevBtn.addEventListener('click', () => {
     if (currentBalanceStep > 0) {
       currentBalanceStep--;
-      renderBalancePremissas();
+      renderBalancePremissas('prev');
     }
   });
 
   nextBtn.addEventListener('click', () => {
-    if (currentBalanceStep < groupKeys.length - 1) {
+    if (currentBalanceStep < groupKeys.length) {
       currentBalanceStep++;
-      renderBalancePremissas();
-    } else {
+      renderBalancePremissas('next');
+    }
+  });
+
+  document.getElementById('wizardContent').addEventListener('click', (e) => {
+    if (e.target.id === 'wizardFinishBtn') {
       document.querySelector('[data-tab="dre"]').click();
     }
   });
