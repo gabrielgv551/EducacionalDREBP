@@ -287,6 +287,303 @@ function calculateGiro(balanco, s = state) {
   return { ccc, aco, pco, ncg, cdg, tesouraria };
 }
 
+function safeDiv(n, d) {
+  return d === 0 ? 0 : n / d;
+}
+
+function evaluateKpi(value, thresholds) {
+  if (value >= thresholds.healthy) return 'healthy';
+  if (value >= thresholds.warning) return 'warning';
+  return 'critical';
+}
+
+function evaluateKpiLow(value, thresholds) {
+  if (value <= thresholds.healthy) return 'healthy';
+  if (value <= thresholds.warning) return 'warning';
+  return 'critical';
+}
+
+function calculateKPIs(dre, balanco, giro) {
+  return [
+    {
+      group: 'Rentabilidade',
+      items: [
+        {
+          id: 'margemBruta',
+          name: 'Margem Bruta',
+          value: safeDiv(dre.lucroBruto, dre.receitaLiquida),
+          format: 'percent',
+          formula: 'Lucro Bruto ÷ Receita Líquida',
+          desc: 'Quanto da receita sobra após o custo direto.',
+          eval: (v) => evaluateKpi(v, { healthy: 0.30, warning: 0.15 }),
+        },
+        {
+          id: 'margemEbitda',
+          name: 'Margem EBITDA',
+          value: safeDiv(dre.ebitda, dre.receitaLiquida),
+          format: 'percent',
+          formula: 'EBITDA ÷ Receita Líquida',
+          desc: 'Geração de caixa operacional por real de receita.',
+          eval: (v) => evaluateKpi(v, { healthy: 0.25, warning: 0.10 }),
+        },
+        {
+          id: 'margemLiquida',
+          name: 'Margem Líquida',
+          value: safeDiv(dre.lucroLiquido, dre.receitaLiquida),
+          format: 'percent',
+          formula: 'Lucro Líquido ÷ Receita Líquida',
+          desc: 'Resultado final em relação à receita.',
+          eval: (v) => evaluateKpi(v, { healthy: 0.10, warning: 0.03 }),
+        },
+        {
+          id: 'roe',
+          name: 'ROE',
+          value: safeDiv(dre.lucroLiquido, balanco.patrimonioLiquido),
+          format: 'percent',
+          formula: 'Lucro Líquido ÷ Patrimônio Líquido',
+          desc: 'Retorno sobre o capital dos sócios.',
+          eval: (v) => evaluateKpi(v, { healthy: 0.15, warning: 0.05 }),
+        },
+        {
+          id: 'roa',
+          name: 'ROA',
+          value: safeDiv(dre.lucroLiquido, balanco.ativoTotal),
+          format: 'percent',
+          formula: 'Lucro Líquido ÷ Ativo Total',
+          desc: 'Retorno sobre todos os recursos aplicados.',
+          eval: (v) => evaluateKpi(v, { healthy: 0.08, warning: 0.03 }),
+        },
+      ],
+    },
+    {
+      group: 'Liquidez',
+      items: [
+        {
+          id: 'liquidezCorrente',
+          name: 'Liquidez Corrente',
+          value: safeDiv(balanco.ativoCirculante, balanco.passivoCirculante),
+          format: 'ratio',
+          formula: 'Ativo Circulante ÷ Passivo Circulante',
+          desc: 'Capacidade de honrar obrigações de curto prazo.',
+          eval: (v) => evaluateKpi(v, { healthy: 1.5, warning: 1.0 }),
+        },
+        {
+          id: 'liquidezSeca',
+          name: 'Liquidez Seca',
+          value: safeDiv(balanco.ativoCirculante - balanco.estoque, balanco.passivoCirculante),
+          format: 'ratio',
+          formula: '(Ativo Circulante − Estoque) ÷ Passivo Circulante',
+          desc: 'Liquidez sem considerar estoque, que é menos conversível.',
+          eval: (v) => evaluateKpi(v, { healthy: 1.0, warning: 0.7 }),
+        },
+        {
+          id: 'liquidezImediata',
+          name: 'Liquidez Imediata',
+          value: safeDiv(balanco.caixa, balanco.passivoCirculante),
+          format: 'ratio',
+          formula: 'Caixa ÷ Passivo Circulante',
+          desc: 'Quanto do passivo circulante pode ser pago com caixa disponível.',
+          eval: (v) => evaluateKpi(v, { healthy: 0.3, warning: 0.1 }),
+        },
+      ],
+    },
+    {
+      group: 'Endividamento',
+      items: [
+        {
+          id: 'endividamentoGeral',
+          name: 'Endividamento Geral',
+          value: safeDiv(balanco.passivoCirculante + balanco.passivoNaoCirculante, balanco.patrimonioLiquido),
+          format: 'ratio',
+          formula: '(Passivo Circulante + Passivo Não Circulante) ÷ Patrimônio Líquido',
+          desc: 'Relação entre dívida total e capital próprio.',
+          eval: (v) => evaluateKpiLow(v, { healthy: 0.5, warning: 1.0 }),
+        },
+        {
+          id: 'endividamentoCurtoPrazo',
+          name: 'Endividamento de Curto Prazo',
+          value: safeDiv(balanco.passivoCirculante, balanco.patrimonioLiquido),
+          format: 'ratio',
+          formula: 'Passivo Circulante ÷ Patrimônio Líquido',
+          desc: 'Pressão de curto prazo sobre o patrimônio líquido.',
+          eval: (v) => evaluateKpiLow(v, { healthy: 0.3, warning: 0.6 }),
+        },
+        {
+          id: 'coberturaJuros',
+          name: 'Cobertura de Juros',
+          value: safeDiv(dre.ebit, dre.despesasEmprestimos),
+          format: 'multiple',
+          formula: 'EBIT ÷ Despesas com Empréstimos',
+          desc: 'Quantas vezes o lucro operacional cobre os juros.',
+          eval: (v) => evaluateKpi(v, { healthy: 3.0, warning: 1.5 }),
+        },
+      ],
+    },
+    {
+      group: 'Rotatividade / Eficiência',
+      items: [
+        {
+          id: 'giroAtivo',
+          name: 'Giro do Ativo',
+          value: safeDiv(dre.receitaLiquida, balanco.ativoTotal),
+          format: 'multiple',
+          formula: 'Receita Líquida ÷ Ativo Total',
+          desc: 'Eficiência em gerar receita com o ativo total.',
+          eval: (v) => evaluateKpi(v, { healthy: 1.0, warning: 0.5 }),
+        },
+        {
+          id: 'rotatividadeEstoque',
+          name: 'Rotatividade de Estoque',
+          value: safeDiv(dre.cmv, balanco.estoque),
+          format: 'multiple',
+          formula: 'CMV ÷ Estoque',
+          desc: 'Quantas vezes o estoque gira no ano.',
+          eval: (v) => evaluateKpi(v, { healthy: 6.0, warning: 3.0 }),
+        },
+        {
+          id: 'prazoMedioRecebimento',
+          name: 'Prazo Médio de Recebimento',
+          value: state.pmr,
+          format: 'days',
+          formula: 'PMR',
+          desc: 'Dias médios para receber de clientes.',
+          eval: () => 'info',
+        },
+        {
+          id: 'prazoMedioPagamento',
+          name: 'Prazo Médio de Pagamento',
+          value: state.pmp,
+          format: 'days',
+          formula: 'PMP',
+          desc: 'Dias médios para pagar fornecedores.',
+          eval: () => 'info',
+        },
+        {
+          id: 'cccKpi',
+          name: 'Ciclo de Conversão de Caixa',
+          value: giro.ccc,
+          format: 'days',
+          formula: 'PME + PMR − PMP',
+          desc: 'Tempo que o dinheiro fica preso no ciclo operacional.',
+          eval: (v) => evaluateKpiLow(v, { healthy: 30, warning: 60 }),
+        },
+      ],
+    },
+    {
+      group: 'Capital de Giro',
+      items: [
+        {
+          id: 'ncgReceita',
+          name: 'NCG / Receita Líquida',
+          value: safeDiv(giro.ncg, dre.receitaLiquida),
+          format: 'percent',
+          formula: 'NCG ÷ Receita Líquida',
+          desc: 'Quanto da receita fica preso na necessidade de giro.',
+          eval: (v) => evaluateKpiLow(v, { healthy: 0.15, warning: 0.25 }),
+        },
+        {
+          id: 'tesourariaReceita',
+          name: 'Tesouraria / Receita Líquida',
+          value: safeDiv(giro.tesouraria, dre.receitaLiquida),
+          format: 'percent',
+          formula: 'Tesouraria ÷ Receita Líquida',
+          desc: 'Folga ou déficit de caixa em relação à receita.',
+          eval: (v) => evaluateKpi(v, { healthy: 0.05, warning: 0.0 }),
+        },
+        {
+          id: 'cdgNcg',
+          name: 'CDG / NCG',
+          value: safeDiv(giro.cdg, giro.ncg),
+          format: 'ratio',
+          formula: 'CDG ÷ NCG',
+          desc: 'Quanto o capital disponível cobre a necessidade de giro.',
+          eval: (v) => evaluateKpi(v, { healthy: 1.5, warning: 1.0 }),
+        },
+      ],
+    },
+  ];
+}
+
+function formatKpiValue(item) {
+  if (item.value === null || Number.isNaN(item.value)) return '—';
+  switch (item.format) {
+    case 'percent':
+      return formatPercent(item.value * 100);
+    case 'ratio':
+      return item.value.toFixed(2).replace('.', ',');
+    case 'multiple':
+      return `${item.value.toFixed(1).replace('.', ',')}x`;
+    case 'days':
+      return `${item.value} dias`;
+    default:
+      return item.value.toString();
+  }
+}
+
+function renderKPIs(kpiGroups) {
+  const tbody = document.querySelector('#kpisTable tbody');
+  if (!tbody) return;
+
+  const rows = [];
+  kpiGroups.forEach((group) => {
+    group.items.forEach((item, index) => {
+      const status = item.eval ? item.eval(item.value) : 'info';
+      const statusClass = `kpi-status ${status}`;
+      const statusLabel = {
+        healthy: 'Saudável',
+        warning: 'Atenção',
+        critical: 'Crítico',
+        info: 'Informativo',
+      }[status];
+      rows.push(`
+        <tr>
+          ${index === 0 ? `<td class="kpi-group" rowspan="${group.items.length}">${group.group}</td>` : ''}
+          <td class="kpi-name"><strong>${item.name}</strong></td>
+          <td class="kpi-value"><span class="${statusClass}">${formatKpiValue(item)}</span></td>
+          <td class="kpi-formula">
+            <div class="kpi-formula-text">${item.formula}</div>
+            <div class="kpi-desc">${item.desc}</div>
+            <span class="kpi-status-label ${statusClass}">${statusLabel}</span>
+          </td>
+        </tr>
+      `);
+    });
+  });
+  tbody.innerHTML = rows.join('');
+
+  const legend = document.getElementById('kpisLegend');
+  if (legend) {
+    legend.innerHTML = `
+      <span class="kpi-status healthy">Saudável</span>
+      <span class="kpi-status warning">Atenção</span>
+      <span class="kpi-status critical">Crítico</span>
+      <span class="kpi-status info">Informativo</span>
+    `;
+  }
+}
+
+function updateKPIsFeedback(kpiGroups) {
+  const el = document.querySelector('#feedbackKpis');
+  if (!el) return;
+  const span = el.querySelector('span');
+  if (!span) return;
+
+  const allItems = kpiGroups.flatMap((g) => g.items);
+  const critical = allItems.filter((i) => i.eval && i.eval(i.value) === 'critical').length;
+  const warning = allItems.filter((i) => i.eval && i.eval(i.value) === 'warning').length;
+
+  if (critical > 0) {
+    el.className = 'card feedback critical';
+    span.textContent = `${critical} indicador(es) está(ão) em zona crítica. Revenda prazos, custos ou estrutura de capital.`;
+  } else if (warning > 0) {
+    el.className = 'card feedback warning';
+    span.textContent = `${warning} indicador(es) está(ão) em atenção. Ajustes operacionais podem melhorar a saúde financeira.`;
+  } else {
+    el.className = 'card feedback';
+    span.textContent = 'Todos os indicadores monitorados estão em zona saudável. Boa performance financeira.';
+  }
+}
+
 function projectCash(s = state) {
   return calculateBalancoMonthly(s).map((m, i) => ({ month: i + 1, caixa: m.caixa }));
 }
@@ -934,6 +1231,14 @@ function updateAll() {
   updateBalanco();
   updateGiro();
   updateAllFeedbacks();
+
+  const dre = calculateDRE();
+  const b = calculateBalanco(dre);
+  const g = calculateGiro(b);
+  const kpiGroups = calculateKPIs(dre, b, g);
+  renderKPIs(kpiGroups);
+  updateKPIsFeedback(kpiGroups);
+
   checkChallenges();
   updateProgress();
 }
@@ -1098,6 +1403,18 @@ const glossaryTerms = {
   'Passivo Não Circulante': 'Obrigações de longo prazo: empréstimos e financiamentos a pagar após 1 ano.',
   'Patrimônio Líquido': 'Recursos próprios da empresa: capital social, reservas e lucros acumulados.',
   'Lucros Acumulados': 'Lucros retidos no negócio, que aumentam o Patrimônio Líquido.',
+  'Margem Bruta': 'Percentual do lucro bruto em relação à receita líquida. Mede a rentabilidade do produto/serviço.',
+  'Margem EBITDA': 'Percentual do EBITDA em relação à receita líquida. Mede a geração de caixa operacional.',
+  'Margem Líquida': 'Percentual do lucro líquido em relação à receita líquida. Resultado final da venda.',
+  'ROE': 'Retorno sobre o Patrimônio Líquido: lucro líquido dividido pelo PL. Mede o retorno para os sócios.',
+  'ROA': 'Retorno sobre os Ativos: lucro líquido dividido pelo ativo total. Mede a eficiência total dos recursos.',
+  'Liquidez Corrente': 'Ativo circulante dividido pelo passivo circulante. Mede a capacidade de pagar dívidas de curto prazo.',
+  'Liquidez Seca': '(Ativo circulante − estoque) dividido pelo passivo circulante. Mede a liquidez sem estoque.',
+  'Liquidez Imediata': 'Caixa dividido pelo passivo circulante. Mede o pagamento imediato de obrigações.',
+  'Endividamento Geral': 'Dívida total (curto + longo prazo) dividida pelo PL. Mede o grau de alavancagem.',
+  'Cobertura de Juros': 'EBIT dividido pelas despesas financeiras. Mede a capacidade de pagar juros.',
+  'Giro do Ativo': 'Receita líquida dividida pelo ativo total. Mede quanto o ativo gera de vendas.',
+  'Rotatividade de Estoque': 'CMV dividido pelo estoque médio. Mede quantas vezes o estoque gira no período.',
 };
 
 function initAprender() {

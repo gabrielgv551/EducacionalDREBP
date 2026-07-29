@@ -590,6 +590,114 @@ body {
 .monthly-dre-table tbody tr.pos td:not(:first-child) { color: var(--success); }
 .monthly-dre-table tbody tr.neg td:not(:first-child) { color: var(--danger); }
 
+/* KPIs */
+.kpis-table-wrap { overflow-x: auto; margin-top: 16px; }
+
+.kpis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  min-width: 680px;
+}
+
+.kpis-table th,
+.kpis-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.kpis-table th {
+  text-align: left;
+  color: var(--accent);
+  font-weight: 700;
+  background: rgba(15,23,42,0.5);
+}
+
+.kpis-table td {
+  color: var(--text);
+}
+
+.kpis-table td.kpi-group {
+  font-weight: 700;
+  color: var(--accent-2);
+  background: rgba(15,23,42,0.4);
+  width: 140px;
+}
+
+.kpis-table td.kpi-name {
+  white-space: nowrap;
+  width: 180px;
+}
+
+.kpis-table td.kpi-value {
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  width: 120px;
+}
+
+.kpis-table td.kpi-formula {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.kpi-formula-text {
+  font-family: "Segoe UI", Roboto, monospace;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.kpi-desc {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.kpi-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-width: 80px;
+}
+
+.kpi-status.healthy { background: rgba(52,211,153,0.15); color: var(--success); }
+.kpi-status.warning { background: rgba(251,191,36,0.15); color: var(--warning); }
+.kpi-status.critical { background: rgba(248,113,113,0.15); color: var(--danger); }
+.kpi-status.info { background: rgba(56,189,248,0.1); color: var(--accent); }
+
+.kpi-status-label {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.kpis-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.kpis-legend .kpi-status {
+  cursor: default;
+  min-width: auto;
+}
+
+@media (max-width: 600px) {
+  .kpis-table th, .kpis-table td { padding: 10px 8px; font-size: 0.8rem; }
+  .kpi-formula-text { font-size: 0.75rem; }
+}
+
 .app-footer { text-align: center; padding: 24px; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 32px; }
 
 @media print {
