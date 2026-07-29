@@ -3,6 +3,30 @@ const formatCurrency = (v) =>
 
 const formatPercent = (v) => `${v.toFixed(1).replace('.', ',')}%`;
 
+function formatAccountingInput(v) {
+  if (v === '' || v == null || Number.isNaN(Number(v))) return '';
+  const num = Math.round(parseFloat(v));
+  return num.toLocaleString('pt-BR');
+}
+
+function parseAccountingInput(s) {
+  if (typeof s !== 'string') return parseFloat(s) || 0;
+  const cleaned = s.replace(/\./g, '').replace(/,/g, '.');
+  return parseFloat(cleaned) || 0;
+}
+
+function maskAccountingInput(input) {
+  const raw = input.value.replace(/[^\d,]/g, '');
+  const numeric = parseFloat(raw.replace(/\./g, '').replace(/,/g, '.')) || 0;
+  const formatted = formatAccountingInput(numeric);
+  const prevLen = input.value.length;
+  const prevCursor = input.selectionStart || 0;
+  input.value = formatted;
+  const addedDots = formatted.length - prevLen;
+  const newCursor = Math.max(0, prevCursor + addedDots);
+  input.setSelectionRange(newCursor, newCursor);
+}
+
 const defaultState = {
   receitaBruta: 5_000_000,
   deducoes: 12,
@@ -538,7 +562,7 @@ function renderBalancePremissas(direction = 'none') {
               (acc, index) => `
         <div class="account-item ${meta.side}" data-group="${group}" data-index="${index}">
           <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
-          <input type="number" class="account-value" value="${acc.value}" data-field="value" min="0" step="1000" placeholder="R$" />
+          <input type="text" class="account-value" value="${formatAccountingInput(acc.value)}" data-field="value" inputmode="decimal" placeholder="R$" />
           <div class="account-actions">
             ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
           </div>
@@ -566,8 +590,16 @@ function renderBalancePremissas(direction = 'none') {
       const group = item.dataset.group;
       const index = parseInt(item.dataset.index, 10);
       const field = e.target.dataset.field;
-      const value = e.target.value;
-      balanceAccounts[group][index][field] = field === 'value' ? parseFloat(value) || 0 : value;
+      if (field === 'value') {
+        const numeric = parseAccountingInput(e.target.value);
+        const formatted = formatAccountingInput(numeric);
+        if (e.target.value !== formatted) {
+          maskAccountingInput(e.target);
+        }
+        balanceAccounts[group][index][field] = numeric;
+      } else {
+        balanceAccounts[group][index][field] = e.target.value;
+      }
       document.getElementById('wizardGroupTotal').textContent = formatCurrency(sumAccounts(balanceAccounts[group]));
       updateWizardScoreboard();
       updateAll();

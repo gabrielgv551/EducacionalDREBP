@@ -923,7 +923,7 @@ body {
 .account-item input[type="text"]:focus { border-color: var(--accent); outline: none; background: rgba(56,189,248,0.08); }
 .account-item input[type="text"]::placeholder { color: var(--text-muted); font-weight: 500; }
 
-.account-item input[type="number"] {
+.account-item input[type="text"].account-value {
   background: #0f172a;
   border: 1px solid var(--border);
   color: var(--text);
@@ -937,8 +937,8 @@ body {
   transition: .2s;
 }
 
-.account-item input[type="number"]:focus { border-color: var(--accent); outline: none; background: rgba(56,189,248,0.08); box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
-.account-item input[type="number"]:hover { border-color: #475569; }
+.account-item input[type="text"].account-value:focus { border-color: var(--accent); outline: none; background: rgba(56,189,248,0.08); box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
+.account-item input[type="text"].account-value:hover { border-color: #475569; }
 
 .account-actions { display: flex; gap: 8px; }
 .btn-remove-account {
@@ -1149,7 +1149,7 @@ body {
   .wizard-group-title { font-size: 1.25rem; }
   .wizard-group-total .value { font-size: 1.3rem; }
   .account-item { grid-template-columns: 1fr; gap: 12px; }
-  .account-item input[type="number"] { width: 100%; text-align: left; }
+  .account-item input[type="text"].account-value { width: 100%; text-align: left; }
   .account-actions { justify-content: flex-end; }
   .wizard-actions .btn { flex: 1; min-width: auto; padding: 12px 16px; }
   .wizard-scoreboard { justify-content: center; }
