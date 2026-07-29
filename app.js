@@ -1324,6 +1324,7 @@ function updateAll() {
   const g = calculateGiro(b);
   const kpiGroups = calculateKPIs(dre, b, g);
   renderKPIs(kpiGroups);
+  renderMonthlyKPIs();
   updateKPIsFeedback(kpiGroups);
 
   checkChallenges();
