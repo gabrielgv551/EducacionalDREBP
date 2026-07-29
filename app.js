@@ -552,8 +552,10 @@ function renderBalancePremissas(direction = 'none') {
         ${(accountSuggestions[group] || [])
           .map((s) => `<div class="suggestion-item" data-suggestion="${s}">${s}</div>`)
           .join('')}
-        <div class="suggestion-divider">ou</div>
-        <div class="suggestion-item" data-suggestion="__custom__">Outra conta...</div>
+        <div class="suggestion-divider">ou crie uma conta</div>
+        <div class="suggestion-custom">
+          <input type="text" class="custom-account-input" placeholder="Digite o nome e pressione Enter" />
+        </div>
       </div>
     </div>
   `;
@@ -595,17 +597,26 @@ function renderBalancePremissas(direction = 'none') {
   dropdown.querySelectorAll('.suggestion-item').forEach((item) => {
     item.addEventListener('click', () => {
       const suggestion = item.dataset.suggestion;
-      let name = suggestion;
-      if (suggestion === '__custom__') {
-        name = prompt('Nome da nova conta:');
-        if (!name) return;
-      }
       const id = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-      balanceAccounts[group].push({ id, name, value: 0, type: 'custom' });
+      balanceAccounts[group].push({ id, name: suggestion, value: 0, type: 'custom' });
       renderBalancePremissas();
       updateAll();
     });
   });
+
+  const customInput = wrapper.querySelector('.custom-account-input');
+  if (customInput) {
+    customInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const name = customInput.value.trim();
+        if (!name) return;
+        const id = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        balanceAccounts[group].push({ id, name, value: 0, type: 'custom' });
+        renderBalancePremissas();
+        updateAll();
+      }
+    });
+  }
 
   updateWizardNavigation();
 }
