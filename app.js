@@ -584,6 +584,91 @@ function updateKPIsFeedback(kpiGroups) {
   }
 }
 
+function calculateKPIsMonthly(s = state) {
+  const monthlyDRE = calculateDREMonthly(s);
+  const monthlyBalanco = calculateBalancoMonthly(s);
+
+  return monthlyDRE.map((m, i) => {
+    const b = monthlyBalanco[i];
+    const ncg = b.contasReceber + b.estoque - b.contasPagar;
+    const cdg = b.caixa + b.outrasObrigacoes;
+    const tesouraria = cdg - ncg;
+    const ccc = s.pme + s.pmr - s.pmp;
+
+    const lucroLiquidoAcumulado = monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0);
+    const ebitAcumulado = monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.ebit, 0);
+    const despesasEmprestimosAcumulado = monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.despesasEmprestimos, 0);
+    const patrimonioLiquido = b.patrimonioLiquido;
+    const ativoTotal = b.ativoTotal;
+
+    return {
+      month: m.month,
+      margemBruta: safeDiv(m.lucroBruto, m.receitaLiquida),
+      margemEbitda: safeDiv(m.ebitda, m.receitaLiquida),
+      margemLiquida: safeDiv(m.lucroLiquido, m.receitaLiquida),
+      roe: safeDiv(lucroLiquidoAcumulado, patrimonioLiquido),
+      roa: safeDiv(lucroLiquidoAcumulado, ativoTotal),
+      liquidezCorrente: safeDiv(b.ativoCirculante, b.passivoCirculante),
+      liquidezSeca: safeDiv(b.ativoCirculante - b.estoque, b.passivoCirculante),
+      liquidezImediata: safeDiv(b.caixa, b.passivoCirculante),
+      coberturaJuros: safeDiv(ebitAcumulado, despesasEmprestimosAcumulado),
+      giroAtivo: safeDiv(m.receitaLiquida, ativoTotal),
+      rotatividadeEstoque: safeDiv(m.cmv, b.estoque),
+      ncgReceita: safeDiv(ncg, m.receitaLiquida),
+      tesourariaReceita: safeDiv(tesouraria, m.receitaLiquida),
+      cdgNcg: safeDiv(cdg, ncg),
+      pmr: s.pmr,
+      pmp: s.pmp,
+      ccc,
+    };
+  });
+}
+
+function renderMonthlyKPIs() {
+  const monthly = calculateKPIsMonthly();
+  const head = document.querySelector('#monthlyKpisTable thead');
+  const tbody = document.querySelector('#monthlyKpisTable tbody');
+  if (!head || !tbody) return;
+
+  head.innerHTML = `<tr><th>Descrição</th>${monthly.map((m) => `<th>${m.month}</th>`).join('')}</tr>`;
+
+  const rowDefs = [
+    { key: 'margemBruta', label: 'Margem Bruta', cls: 'pos', fmt: 'percent' },
+    { key: 'margemEbitda', label: 'Margem EBITDA', cls: 'pos', fmt: 'percent' },
+    { key: 'margemLiquida', label: 'Margem Líquida', cls: 'total', fmt: 'percent' },
+    { key: 'roe', label: 'ROE (acumulado)', cls: 'pos', fmt: 'percent' },
+    { key: 'roa', label: 'ROA (acumulado)', cls: 'pos', fmt: 'percent' },
+    { key: 'liquidezCorrente', label: 'Liquidez Corrente', cls: 'pos', fmt: 'ratio' },
+    { key: 'liquidezSeca', label: 'Liquidez Seca', cls: 'pos', fmt: 'ratio' },
+    { key: 'liquidezImediata', label: 'Liquidez Imediata', cls: 'pos', fmt: 'ratio' },
+    { key: 'coberturaJuros', label: 'Cobertura de Juros', cls: 'pos', fmt: 'multiple' },
+    { key: 'giroAtivo', label: 'Giro do Ativo', cls: 'pos', fmt: 'multiple' },
+    { key: 'rotatividadeEstoque', label: 'Rotatividade de Estoque', cls: 'pos', fmt: 'multiple' },
+    { key: 'ncgReceita', label: 'NCG / Receita', cls: 'neg', fmt: 'percent' },
+    { key: 'tesourariaReceita', label: 'Tesouraria / Receita', cls: 'pos', fmt: 'percent' },
+    { key: 'cdgNcg', label: 'CDG / NCG', cls: 'pos', fmt: 'ratio' },
+    { key: 'pmr', label: 'PMR (dias)', cls: 'sub', fmt: 'days' },
+    { key: 'pmp', label: 'PMP (dias)', cls: 'sub', fmt: 'days' },
+    { key: 'ccc', label: 'CCC (dias)', cls: 'sub', fmt: 'days' },
+  ];
+
+  const fmtValue = (v, fmt) => {
+    if (v === null || Number.isNaN(v)) return '—';
+    if (fmt === 'percent') return formatPercent(v * 100);
+    if (fmt === 'ratio') return v.toFixed(2).replace('.', ',');
+    if (fmt === 'multiple') return `${v.toFixed(1).replace('.', ',')}x`;
+    if (fmt === 'days') return `${v}d`;
+    return v.toString();
+  };
+
+  tbody.innerHTML = rowDefs
+    .map((r) => {
+      const monthlyValues = monthly.map((m) => `<td>${fmtValue(m[r.key], r.fmt)}</td>`).join('');
+      return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
+    })
+    .join('');
+}
+
 function projectCash(s = state) {
   return calculateBalancoMonthly(s).map((m, i) => ({ month: i + 1, caixa: m.caixa }));
 }
@@ -600,6 +685,7 @@ function renderDreTable(tableId, indicatorsId, dre, divisor) {
     ['(−) Depreciação', -dre.depreciacao / divisor, 'neg', 'Custo do desgaste de ativos imobilizados.', ''],
     ['EBIT', dre.ebit / divisor, 'sub', 'Lucro operacional antes de juros e impostos.', 'EBIT'],
     ['(−) Despesas com Empréstimos', -dre.despesasEmprestimos / divisor, 'neg', 'Juros e encargos financeiros com empréstimos.', 'Despesas com Empréstimos'],
+    ['LAIR', dre.laIR / divisor, 'sub', 'Lucro antes do Imposto de Renda.', 'LAIR'],
     ['(−) IR/CSLL', -dre.ir / divisor, 'neg', 'Tributos sobre o lucro.', ''],
     ['Lucro Líquido', dre.lucroLiquido / divisor, 'total', 'Resultado final disponível para os acionistas.', 'Lucro Líquido'],
   ];
@@ -642,6 +728,7 @@ function renderWaterfall(dre) {
     ['Desp. Op.', -dre.despesasOperacionais / divisor, 'neg'],
     ['Deprec.', -dre.depreciacao / divisor, 'neg'],
     ['Emprést.', -dre.despesasEmprestimos / divisor, 'neg'],
+    ['LAIR', dre.laIR / divisor, 'sub'],
     ['IR/CSLL', -dre.ir / divisor, 'neg'],
     ['Lucro Líquido', dre.lucroLiquido / divisor, 'total'],
   ];
@@ -1389,6 +1476,7 @@ const glossaryTerms = {
   'EBITDA': 'Lucro antes de juros, impostos, depreciação e amortização. Indica a geração de caixa operacional.',
   'EBIT': 'Lucro operacional antes de juros e impostos. Mostra a rentabilidade do negócio sem efeito financeiro.',
   'Despesas com Empréstimos': 'Juros e encargos financeiros pagos sobre empréstimos e financiamentos. Reduzem o lucro antes do IR.',
+  'LAIR': 'Lucro antes do Imposto de Renda. Resultado obtido após subtrair as despesas financeiras do EBIT.',
   'Lucro Líquido': 'Resultado final da empresa após todos os custos, despesas e tributos.',
   'PMR': 'Prazo Médio de Recebimento: quantos dias, em média, a empresa demora para receber de clientes.',
   'PME': 'Prazo Médio de Estoque: quantos dias, em média, a mercadoria fica parada antes de ser vendida.',
@@ -1684,6 +1772,7 @@ function renderMonthlyTable() {
     { key: 'depreciacao', label: '(−) Depreciação', cls: 'neg', get: (m) => m.depreciacao },
     { key: 'ebit', label: 'EBIT', cls: 'sub' },
     { key: 'despesasEmprestimos', label: '(−) Despesas com Empréstimos', cls: 'neg', get: (m) => m.despesasEmprestimos },
+    { key: 'laIR', label: 'LAIR', cls: 'sub' },
     { key: 'ir', label: '(−) IR/CSLL', cls: 'neg', get: (m) => m.ir },
     { key: 'lucroLiquido', label: 'Lucro Líquido', cls: 'total' },
   ];
