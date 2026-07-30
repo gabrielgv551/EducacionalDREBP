@@ -378,9 +378,15 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const lucrosAcumuladosIniciais = 0;
 
   return monthlyDRE.map((m, i) => {
-    const contasReceber = manualContasReceber > 0 ? manualContasReceber : m.receitaLiquida * (s.pmr / daysInMonth);
-    const estoque = manualEstoque > 0 ? manualEstoque : m.cmv * (s.pme / daysInMonth);
-    const contasPagar = manualContasPagar > 0 ? manualContasPagar : m.cmv * (s.pmp / daysInMonth);
+    const contasReceber = i === 0 && manualContasReceber > 0
+      ? manualContasReceber
+      : m.receitaLiquida * (s.pmr / daysInMonth);
+    const estoque = i === 0 && manualEstoque > 0
+      ? manualEstoque
+      : m.cmv * (s.pme / daysInMonth);
+    const contasPagar = i === 0 && manualContasPagar > 0
+      ? manualContasPagar
+      : m.cmv * (s.pmp / daysInMonth);
     const lucroLiquidoAcumulado = monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0);
     const lucrosAcumulados = lucrosAcumuladosIniciais + lucroLiquidoAcumulado;
 
