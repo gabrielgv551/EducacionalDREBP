@@ -330,9 +330,15 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const totalPassivoNaoCirculante = sumResolvedAccounts(accounts, 'passivoNaoCirculante', s, dec);
   const totalPatrimonioLiquidoInformado = sumResolvedAccounts(accounts, 'patrimonioLiquido', s, dec);
 
-  // O caixa inicial é o saldo de caixa do exercício anterior. Ele é financiado pelos lucros acumulados iniciais.
-  const lucrosAcumuladosIniciais = caixaInicial + outrasAtivoCirculante + cr0 + est0 + totalAtivoNaoCirculante
-    - cp0 - totalPassivoCirculanteInformado - totalPassivoNaoCirculante - totalPatrimonioLiquidoInformado - monthlyDRE[0].lucroLiquido;
+  // Contas residuais para fazer o balanço fechar no início do exercício
+  const ativoInformado = caixaInicial + outrasAtivoCirculante + cr0 + est0 + totalAtivoNaoCirculante;
+  const passivoPLInformado = cp0 + totalPassivoCirculanteInformado + totalPassivoNaoCirculante + totalPatrimonioLiquidoInformado;
+  const diferenca = ativoInformado - passivoPLInformado;
+  const outrosAtivos = Math.max(0, -diferenca);
+  const outrosPassivos = Math.max(0, diferenca);
+
+  // Sem lucros acumulados iniciais artificiais; o lucro do ano começa do zero
+  const lucrosAcumuladosIniciais = 0;
 
   return monthlyDRE.map((m, i) => {
     const contasReceber = m.receitaLiquida * (s.pmr / daysInMonth);
@@ -341,8 +347,8 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     const lucroLiquidoAcumulado = monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0);
     const lucrosAcumulados = lucrosAcumuladosIniciais + lucroLiquidoAcumulado;
 
-    const ativoNaoCirculante = totalAtivoNaoCirculante;
-    const passivoNaoCirculante = totalPassivoNaoCirculante;
+    const ativoNaoCirculante = totalAtivoNaoCirculante + outrosAtivos;
+    const passivoNaoCirculante = totalPassivoNaoCirculante + outrosPassivos;
     const outrasObrigacoes = totalPassivoCirculanteInformado;
     const patrimonioLiquidoInformado = totalPatrimonioLiquidoInformado;
 
@@ -362,11 +368,13 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
       outrasAtivoCirculante,
       ativoCirculante,
       ativoNaoCirculante,
+      outrosAtivos,
       ativoTotal,
       contasPagar,
       outrasObrigacoes,
       passivoCirculante,
       passivoNaoCirculante,
+      outrosPassivos,
       patrimonioLiquidoInformado,
       lucrosAcumulados,
       lucrosAcumuladosIniciais,
@@ -905,7 +913,10 @@ function updateBalanco() {
     ['Estoque', b.estoque, 'estoque', `CMV de dezembro × PME ÷ 30 = ${formatCurrency(dec.cmv)} × ${state.pme} ÷ 30`],
     ...ativoCirculanteContas,
   ];
-  const anItems = ativoNaoCirculanteContas;
+  const anItems = [
+    ...ativoNaoCirculanteContas,
+    ['Outros Ativos', b.outrosAtivos, 'outrosAtivos', 'Conta residual para fechar o balanço quando o ativo informado é menor que o passivo + PL.'],
+  ];
 
   renderBlock('#ativoCirculante .block-items', ativoItems, 'A');
   renderBlock('#ativoNaoCirculante .block-items', anItems, 'A');
@@ -915,7 +926,10 @@ function updateBalanco() {
     ['Contas a Pagar', b.contasPagar, 'pagar', `CMV de dezembro × PMP ÷ 30 = ${formatCurrency(dec.cmv)} × ${state.pmp} ÷ 30`],
     ...passivoCirculanteContas,
   ];
-  const pnpItems = passivoNaoCirculanteContas;
+  const pnpItems = [
+    ...passivoNaoCirculanteContas,
+    ['Outros Passivos', b.outrosPassivos, 'outrosPassivos', 'Conta residual para fechar o balanço quando o ativo informado é maior que o passivo + PL.'],
+  ];
   const plItems = [
     ...patrimonioLiquidoContas,
     ['Lucros Acumulados', b.lucrosAcumulados, 'la', 'Lucros acumulados iniciais + Lucro Líquido do exercício.'],
@@ -1851,11 +1865,13 @@ function renderMonthlyBalanco() {
     { label: 'Contas a Receber', cls: 'sub', key: 'contasReceber' },
     { label: 'Estoque', cls: 'sub', key: 'estoque' },
     { label: 'Ativo Não Circulante', cls: 'total', key: 'ativoNaoCirculante' },
+    { label: 'Outros Ativos', cls: 'sub', key: 'outrosAtivos' },
     { label: 'Total Ativo', cls: 'total', key: 'ativoTotal' },
     { label: 'Passivo Circulante', cls: 'total', key: 'passivoCirculante' },
     { label: 'Contas a Pagar', cls: 'sub', key: 'contasPagar' },
     { label: 'Outras Obrigações', cls: 'sub', key: 'outrasObrigacoes' },
     { label: 'Passivo Não Circulante', cls: 'total', key: 'passivoNaoCirculante' },
+    { label: 'Outros Passivos', cls: 'sub', key: 'outrosPassivos' },
     { label: 'Patrimônio Líquido', cls: 'total', key: 'patrimonioLiquido' },
     { label: 'Capital Social / PL Informado', cls: 'sub', key: 'patrimonioLiquidoInformado' },
     { label: 'Lucros Acumulados', cls: 'sub', key: 'lucrosAcumulados' },
