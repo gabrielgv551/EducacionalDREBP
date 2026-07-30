@@ -1147,6 +1147,27 @@ body {
   white-space: nowrap;
 }
 
+.dynamic-badge.manual {
+  background: rgba(56,189,248,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.account-item.manual { border-left-color: var(--accent); }
+.account-item.manual:hover { border-color: var(--accent); box-shadow: 0 8px 24px rgba(56,189,248,0.15); }
+
+.account-item.manual input[type="text"].account-value.dynamic-input {
+  border-color: var(--accent);
+  background: rgba(56,189,248,0.08);
+}
+
+.account-item.manual input[type="text"].account-value.dynamic-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56,189,248,0.15);
+}
+
+.account-resolved.manual { border-color: var(--accent); }
+
 .account-resolved {
   display: flex;
   align-items: baseline;

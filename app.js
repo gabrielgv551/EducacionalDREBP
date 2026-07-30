@@ -101,6 +101,9 @@ function accountMatches(name, ...terms) {
 function resolveAccountValue(name, group, baseValue, m, dec) {
   const v = parseFloat(baseValue) || 0;
 
+  // Se o usuário digitou um valor manual, usa o valor digitado (sobrescreve o cálculo automático)
+  if (v !== 0) return v;
+
   if (group === 'ativoCirculante') {
     if (accountMatches(name, 'aplicação', 'aplicacao', 'aplicacoes', 'aplicações')) {
       return v * 1.1; // rendimento 10% a.a.
@@ -1053,18 +1056,22 @@ function renderBalancePremissas(direction = 'none') {
               (acc, index) => {
                 const resolved = resolveAccountValue(acc.name, group, acc.value, state, dec);
                 const dynamic = accountIsDynamic(acc.name, group);
-                const dynamicDesc = resolveAccountDescription(acc.name, group, acc.value, state, dec);
+                const hasManualValue = parseFloat(acc.value || 0) !== 0;
+                const dynamicDesc = dynamic && hasManualValue
+                  ? 'Usando valor digitado manualmente. Zerar o campo para voltar ao cálculo automático.'
+                  : resolveAccountDescription(acc.name, group, acc.value, state, dec);
+                const badgeLabel = dynamic && hasManualValue ? 'Manual' : 'Automático';
                 return `
-        <div class="account-item ${meta.side} ${dynamic ? 'dynamic' : ''}" data-group="${group}" data-index="${index}" title="${dynamic ? dynamicDesc.replace(/"/g, '&quot;') : ''}">
+        <div class="account-item ${meta.side} ${dynamic ? 'dynamic' : ''} ${dynamic && hasManualValue ? 'manual' : ''}" data-group="${group}" data-index="${index}" title="${dynamic ? dynamicDesc.replace(/"/g, '&quot;') : ''}">
           <div class="account-main">
             <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
             <input type="text" class="account-value ${dynamic ? 'dynamic-input' : ''}" value="${formatAccountingInput(acc.value)}" data-field="value" inputmode="decimal" placeholder="${dynamic ? 'Saldo inicial R$' : 'R$'}" ${dynamic ? 'data-tooltip="Valor base usado no cálculo automático"' : ''} />
             <div class="account-actions">
-              ${dynamic ? `<span class="dynamic-badge" title="${dynamicDesc.replace(/"/g, '&quot;')}">⚡ Automático</span>` : ''}
+              ${dynamic ? `<span class="dynamic-badge ${hasManualValue ? 'manual' : ''}" title="${dynamicDesc.replace(/"/g, '&quot;')}">${hasManualValue ? '✏️ Manual' : '⚡ Automático'}</span>` : ''}
               ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
             </div>
           </div>
-          ${dynamic ? `<div class="account-resolved"><span class="resolved-label">Valor calculado:</span> <span class="resolved-value">${formatCurrency(resolved)}</span><span class="resolved-formula">${dynamicDesc}</span></div>` : ''}
+          ${dynamic ? `<div class="account-resolved"><span class="resolved-label">Valor usado:</span> <span class="resolved-value">${formatCurrency(resolved)}</span><span class="resolved-formula">${dynamicDesc}</span></div>` : ''}
         </div>`;
               }
             )
