@@ -615,6 +615,15 @@ function calculateKPIs(dre, balanco, giro) {
           eval: (v) => evaluateKpi(v, { healthy: 6.0, warning: 3.0 }),
         },
         {
+          id: 'prazoMedioEstoque',
+          name: 'Prazo Médio de Estoque',
+          value: state.pme,
+          format: 'days',
+          formula: 'PME',
+          desc: 'Dias médios que a mercadoria fica parada em estoque.',
+          eval: () => 'info',
+        },
+        {
           id: 'prazoMedioRecebimento',
           name: 'Prazo Médio de Recebimento',
           value: state.pmr,
@@ -792,6 +801,7 @@ function calculateKPIsMonthly(s = state) {
       tesourariaValor: tesouraria,
       cdgNcg: safeDiv(cdg, ncg),
       pmr: s.pmr,
+      pme: s.pme,
       pmp: s.pmp,
       ccc,
     };
@@ -818,6 +828,7 @@ function renderMonthlyKPIs() {
     { key: 'coberturaJuros', label: 'Cobertura de Juros', cls: 'pos', fmt: 'multiple' },
     { key: 'giroAtivo', label: 'Giro do Ativo', cls: 'pos', fmt: 'multiple' },
     { key: 'rotatividadeEstoque', label: 'Rotatividade de Estoque', cls: 'pos', fmt: 'multiple' },
+    { key: 'pme', label: 'PME (dias)', cls: 'sub', fmt: 'days' },
     { key: 'ncgValor', label: 'NCG (R$)', cls: 'neg', fmt: 'currency' },
     { key: 'tesourariaValor', label: 'Tesouraria (R$)', cls: 'pos', fmt: 'currency' },
     { key: 'cdgNcg', label: 'CDG / NCG', cls: 'pos', fmt: 'ratio' },
