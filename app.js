@@ -336,12 +336,12 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
 
   const caixaInicial = getResolvedAccountValue(accounts, 'ativoCirculante', 'caixaInicial', s, dec);
   const outrasAtivoCirculante = getOtherResolvedAccountsTotal(accounts, 'ativoCirculante', 'caixaInicial', s, dec, true);
-  const totalAtivoNaoCirculante = sumResolvedAccounts(accounts, 'ativoNaoCirculante', s, dec);
+  const totalAtivoNaoCirculanteInformado = sumResolvedAccounts(accounts, 'ativoNaoCirculante', s, dec);
   const totalPassivoCirculanteInformado = sumResolvedAccounts(accounts, 'passivoCirculante', s, dec);
-  const totalPassivoNaoCirculante = sumResolvedAccounts(accounts, 'passivoNaoCirculante', s, dec);
+  const totalPassivoNaoCirculanteInformado = sumResolvedAccounts(accounts, 'passivoNaoCirculante', s, dec);
   const totalPatrimonioLiquidoInformado = sumResolvedAccounts(accounts, 'patrimonioLiquido', s, dec);
 
-  // Valores manuais para contas dinâmicas (sobrescrevem o cálculo automático)
+  // Valores manuais para contas dinâmicas (sobrescrevem o cálculo automático no mês 0)
   const manualContasReceber = sumManualDynamicAccounts(
     accounts,
     'ativoCirculante',
@@ -364,67 +364,91 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     dec
   );
 
-  const cr0 = manualContasReceber > 0 ? manualContasReceber : dec.receitaLiquida * (s.pmr / daysInMonth);
-  const est0 = manualEstoque > 0 ? manualEstoque : dec.cmv * (s.pme / daysInMonth);
-  const cp0 = manualContasPagar > 0 ? manualContasPagar : dec.cmv * (s.pmp / daysInMonth);
+  // Prepara vetores mensais para contas dinâmicas operacionais
+  const contasReceberMensal = monthlyDRE.map((m, i) =>
+    i === 0 && manualContasReceber > 0 ? manualContasReceber : m.receitaLiquida * (s.pmr / daysInMonth)
+  );
+  const estoqueMensal = monthlyDRE.map((m, i) =>
+    i === 0 && manualEstoque > 0 ? manualEstoque : m.cmv * (s.pme / daysInMonth)
+  );
+  const contasPagarMensal = monthlyDRE.map((m, i) =>
+    i === 0 && manualContasPagar > 0 ? manualContasPagar : m.cmv * (s.pmp / daysInMonth)
+  );
+  const ncgMensal = contasReceberMensal.map((cr, i) => cr + estoqueMensal[i] - contasPagarMensal[i]);
 
-  // Contas residuais para fazer o balanço fechar no início do exercício
-  const ativoInformado = caixaInicial + outrasAtivoCirculante + cr0 + est0 + totalAtivoNaoCirculante;
-  const passivoPLInformado = cp0 + totalPassivoCirculanteInformado + totalPassivoNaoCirculante + totalPatrimonioLiquidoInformado;
-  const diferenca = ativoInformado - passivoPLInformado;
-  const outrosAtivos = Math.max(0, -diferenca);
-  const outrosPassivos = Math.max(0, diferenca);
+  const caixaMensal = new Array(monthlyDRE.length).fill(0);
+  caixaMensal[0] = caixaInicial;
+  for (let i = 1; i < monthlyDRE.length; i++) {
+    caixaMensal[i] = caixaMensal[i - 1] + monthlyDRE[i].lucroLiquido - (ncgMensal[i] - ncgMensal[i - 1]);
+  }
 
-  const lucrosAcumuladosIniciais = 0;
+  const lucroLiquidoAcumuladoMensal = monthlyDRE.map((_, i) =>
+    monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0)
+  );
 
-  return monthlyDRE.map((m, i) => {
-    const contasReceber = i === 0 && manualContasReceber > 0
-      ? manualContasReceber
-      : m.receitaLiquida * (s.pmr / daysInMonth);
-    const estoque = i === 0 && manualEstoque > 0
-      ? manualEstoque
-      : m.cmv * (s.pme / daysInMonth);
-    const contasPagar = i === 0 && manualContasPagar > 0
-      ? manualContasPagar
-      : m.cmv * (s.pmp / daysInMonth);
-    const lucroLiquidoAcumulado = monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0);
-    const lucrosAcumulados = lucrosAcumuladosIniciais + lucroLiquidoAcumulado;
+  const outrosAtivosMensal = new Array(monthlyDRE.length).fill(0);
+  const outrosPassivosMensal = new Array(monthlyDRE.length).fill(0);
+  const ativoNaoCirculanteMensal = new Array(monthlyDRE.length).fill(0);
+  const passivoNaoCirculanteMensal = new Array(monthlyDRE.length).fill(0);
+  const passivoCirculanteMensal = new Array(monthlyDRE.length).fill(0);
+  const patrimonioLiquidoMensal = new Array(monthlyDRE.length).fill(0);
+  const totalPassivoPLMensal = new Array(monthlyDRE.length).fill(0);
+  const ativoCirculanteMensal = new Array(monthlyDRE.length).fill(0);
+  const ativoTotalMensal = new Array(monthlyDRE.length).fill(0);
 
-    const ativoNaoCirculante = totalAtivoNaoCirculante + outrosAtivos;
-    const passivoNaoCirculante = totalPassivoNaoCirculante + outrosPassivos;
-    const outrasObrigacoes = totalPassivoCirculanteInformado;
-    const patrimonioLiquidoInformado = totalPatrimonioLiquidoInformado;
+  for (let i = 0; i < monthlyDRE.length; i++) {
+    const lucrosAcumulados = lucroLiquidoAcumuladoMensal[i];
 
-    const passivoCirculante = contasPagar + outrasObrigacoes;
-    const patrimonioLiquido = patrimonioLiquidoInformado + lucrosAcumulados;
+    const passivoCirculante = contasPagarMensal[i] + totalPassivoCirculanteInformado;
+    const patrimonioLiquido = totalPatrimonioLiquidoInformado + lucrosAcumulados;
+
+    // Ativo real sem as contas residuais (Outros Ativos / Outros Passivos)
+    const ativoReal = caixaMensal[i] + contasReceberMensal[i] + estoqueMensal[i] + outrasAtivoCirculante + totalAtivoNaoCirculanteInformado;
+    // Passivo + PL real sem a conta residual de Outros Passivos
+    const passivoPLReal = passivoCirculante + totalPassivoNaoCirculanteInformado + patrimonioLiquido;
+
+    const diferenca = ativoReal - passivoPLReal;
+    const outrosAtivos = Math.max(0, -diferenca);
+    const outrosPassivos = Math.max(0, diferenca);
+
+    const ativoNaoCirculante = totalAtivoNaoCirculanteInformado + outrosAtivos;
+    const passivoNaoCirculante = totalPassivoNaoCirculanteInformado + outrosPassivos;
     const totalPassivoPL = passivoCirculante + passivoNaoCirculante + patrimonioLiquido;
-
-    const caixa = totalPassivoPL - (contasReceber + estoque + outrasAtivoCirculante + ativoNaoCirculante);
-    const ativoCirculante = caixa + contasReceber + estoque + outrasAtivoCirculante;
+    const ativoCirculante = caixaMensal[i] + contasReceberMensal[i] + estoqueMensal[i] + outrasAtivoCirculante;
     const ativoTotal = ativoCirculante + ativoNaoCirculante;
 
-    return {
-      month: m.month,
-      caixa,
-      contasReceber,
-      estoque,
-      outrasAtivoCirculante,
-      ativoCirculante,
-      ativoNaoCirculante,
-      outrosAtivos,
-      ativoTotal,
-      contasPagar,
-      outrasObrigacoes,
-      passivoCirculante,
-      passivoNaoCirculante,
-      outrosPassivos,
-      patrimonioLiquidoInformado,
-      lucrosAcumulados,
-      lucrosAcumuladosIniciais,
-      patrimonioLiquido,
-      totalPassivoPL,
-    };
-  });
+    outrosAtivosMensal[i] = outrosAtivos;
+    outrosPassivosMensal[i] = outrosPassivos;
+    ativoNaoCirculanteMensal[i] = ativoNaoCirculante;
+    passivoNaoCirculanteMensal[i] = passivoNaoCirculante;
+    passivoCirculanteMensal[i] = passivoCirculante;
+    patrimonioLiquidoMensal[i] = patrimonioLiquido;
+    totalPassivoPLMensal[i] = totalPassivoPL;
+    ativoCirculanteMensal[i] = ativoCirculante;
+    ativoTotalMensal[i] = ativoTotal;
+  }
+
+  return monthlyDRE.map((m, i) => ({
+    month: m.month,
+    caixa: caixaMensal[i],
+    contasReceber: contasReceberMensal[i],
+    estoque: estoqueMensal[i],
+    outrasAtivoCirculante,
+    ativoCirculante: ativoCirculanteMensal[i],
+    ativoNaoCirculante: ativoNaoCirculanteMensal[i],
+    outrosAtivos: outrosAtivosMensal[i],
+    ativoTotal: ativoTotalMensal[i],
+    contasPagar: contasPagarMensal[i],
+    outrasObrigacoes: totalPassivoCirculanteInformado,
+    passivoCirculante: passivoCirculanteMensal[i],
+    passivoNaoCirculante: passivoNaoCirculanteMensal[i],
+    outrosPassivos: outrosPassivosMensal[i],
+    patrimonioLiquidoInformado: totalPatrimonioLiquidoInformado,
+    lucrosAcumulados: lucroLiquidoAcumuladoMensal[i],
+    lucrosAcumuladosIniciais: 0,
+    patrimonioLiquido: patrimonioLiquidoMensal[i],
+    totalPassivoPL: totalPassivoPLMensal[i],
+  }));
 }
 
 function calculateGiro(balanco, s = state) {
