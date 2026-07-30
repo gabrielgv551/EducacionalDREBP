@@ -150,9 +150,9 @@ function sumResolvedAccounts(accounts, group, m, dec) {
   return accounts[group].reduce((acc, a) => acc + resolveAccountValue(a.name, group, a.value, m, dec), 0);
 }
 
-function getOtherResolvedAccountsTotal(accounts, group, excludeId, m, dec) {
+function getOtherResolvedAccountsTotal(accounts, group, excludeId, m, dec, excludeDynamic = false) {
   return accounts[group]
-    .filter((a) => a.id !== excludeId)
+    .filter((a) => a.id !== excludeId && !(excludeDynamic && accountIsDynamic(a.name, group)))
     .reduce((acc, a) => acc + resolveAccountValue(a.name, group, a.value, m, dec), 0);
 }
 
@@ -170,6 +170,10 @@ function accountIsDynamic(name, group) {
     return accountMatches(name, 'empréstimo', 'emprestimo', 'financiamento');
   }
   return false;
+}
+
+function isDynamicAccount(name, group) {
+  return accountIsDynamic(name, group);
 }
 
 function resolveAccountDescription(name, group, baseValue, m, dec) {
@@ -315,20 +319,54 @@ function calculateBalanco(dre, s = state) {
   return monthly[monthly.length - 1];
 }
 
+function sumManualDynamicAccounts(accounts, group, matcher, s, dec) {
+  return accounts[group].reduce((acc, a) => {
+    const v = parseFloat(a.value) || 0;
+    if (v !== 0 && matcher(a.name)) {
+      return acc + resolveAccountValue(a.name, group, a.value, s, dec);
+    }
+    return acc;
+  }, 0);
+}
+
 function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const monthlyDRE = calculateDREMonthly(s);
   const daysInMonth = 30;
   const dec = monthlyDRE[monthlyDRE.length - 1];
-  const cr0 = dec.receitaLiquida * (s.pmr / daysInMonth);
-  const est0 = dec.cmv * (s.pme / daysInMonth);
-  const cp0 = dec.cmv * (s.pmp / daysInMonth);
 
   const caixaInicial = getResolvedAccountValue(accounts, 'ativoCirculante', 'caixaInicial', s, dec);
-  const outrasAtivoCirculante = getOtherResolvedAccountsTotal(accounts, 'ativoCirculante', 'caixaInicial', s, dec);
+  const outrasAtivoCirculante = getOtherResolvedAccountsTotal(accounts, 'ativoCirculante', 'caixaInicial', s, dec, true);
   const totalAtivoNaoCirculante = sumResolvedAccounts(accounts, 'ativoNaoCirculante', s, dec);
   const totalPassivoCirculanteInformado = sumResolvedAccounts(accounts, 'passivoCirculante', s, dec);
   const totalPassivoNaoCirculante = sumResolvedAccounts(accounts, 'passivoNaoCirculante', s, dec);
   const totalPatrimonioLiquidoInformado = sumResolvedAccounts(accounts, 'patrimonioLiquido', s, dec);
+
+  // Valores manuais para contas dinâmicas (sobrescrevem o cálculo automático)
+  const manualContasReceber = sumManualDynamicAccounts(
+    accounts,
+    'ativoCirculante',
+    (name) => accountMatches(name, 'título', 'titulo', 'contas a receber', 'receber'),
+    s,
+    dec
+  );
+  const manualEstoque = sumManualDynamicAccounts(
+    accounts,
+    'ativoCirculante',
+    (name) => accountMatches(name, 'estoque'),
+    s,
+    dec
+  );
+  const manualContasPagar = sumManualDynamicAccounts(
+    accounts,
+    'passivoCirculante',
+    (name) => accountMatches(name, 'contas a pagar', 'fornecedor', 'fornecedores', 'obrigação social', 'obrigacao social', 'fgts', 'inss'),
+    s,
+    dec
+  );
+
+  const cr0 = manualContasReceber > 0 ? manualContasReceber : dec.receitaLiquida * (s.pmr / daysInMonth);
+  const est0 = manualEstoque > 0 ? manualEstoque : dec.cmv * (s.pme / daysInMonth);
+  const cp0 = manualContasPagar > 0 ? manualContasPagar : dec.cmv * (s.pmp / daysInMonth);
 
   // Contas residuais para fazer o balanço fechar no início do exercício
   const ativoInformado = caixaInicial + outrasAtivoCirculante + cr0 + est0 + totalAtivoNaoCirculante;
@@ -337,13 +375,12 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const outrosAtivos = Math.max(0, -diferenca);
   const outrosPassivos = Math.max(0, diferenca);
 
-  // Sem lucros acumulados iniciais artificiais; o lucro do ano começa do zero
   const lucrosAcumuladosIniciais = 0;
 
   return monthlyDRE.map((m, i) => {
-    const contasReceber = m.receitaLiquida * (s.pmr / daysInMonth);
-    const estoque = m.cmv * (s.pme / daysInMonth);
-    const contasPagar = m.cmv * (s.pmp / daysInMonth);
+    const contasReceber = manualContasReceber > 0 ? manualContasReceber : m.receitaLiquida * (s.pmr / daysInMonth);
+    const estoque = manualEstoque > 0 ? manualEstoque : m.cmv * (s.pme / daysInMonth);
+    const contasPagar = manualContasPagar > 0 ? manualContasPagar : m.cmv * (s.pmp / daysInMonth);
     const lucroLiquidoAcumulado = monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0);
     const lucrosAcumulados = lucrosAcumuladosIniciais + lucroLiquidoAcumulado;
 
@@ -900,10 +937,12 @@ function updateBalanco() {
   const dec = calculateDREMonthly()[11];
 
   const ativoCirculanteContas = balanceAccounts.ativoCirculante
-    .filter((acc) => acc.id !== 'caixaInicial')
+    .filter((acc) => acc.id !== 'caixaInicial' && !accountIsDynamic(acc.name, 'ativoCirculante'))
     .map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'ativoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'ativoCirculante', acc.value, state, dec)]);
   const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'ativoNaoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'ativoNaoCirculante', acc.value, state, dec)]);
-  const passivoCirculanteContas = balanceAccounts.passivoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoCirculante', acc.value, state, dec)]);
+  const passivoCirculanteContas = balanceAccounts.passivoCirculante
+    .filter((acc) => !accountIsDynamic(acc.name, 'passivoCirculante'))
+    .map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoCirculante', acc.value, state, dec)]);
   const passivoNaoCirculanteContas = balanceAccounts.passivoNaoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoNaoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoNaoCirculante', acc.value, state, dec)]);
   const patrimonioLiquidoContas = balanceAccounts.patrimonioLiquido.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'patrimonioLiquido', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'patrimonioLiquido', acc.value, state, dec)]);
 
