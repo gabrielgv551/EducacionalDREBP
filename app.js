@@ -977,7 +977,7 @@ function updateBalanco() {
   ];
   const plItems = [
     ...patrimonioLiquidoContas,
-    ['Lucro do Exercício', b.lucrosAcumulados, 'la', 'Lucro Líquido acumulado do exercício.'],
+    ['Resultado do Exercício', b.lucrosAcumulados, 'la', 'Lucro Líquido acumulado do exercício.'],
   ];
 
   renderBlock('#passivoCirculante .block-items', passivoItems, 'P');
@@ -1665,7 +1665,7 @@ const glossaryTerms = {
   'Passivo Circulante': 'Obrigações de curto prazo: contas a pagar, empréstimos de curto prazo, salários etc.',
   'Passivo Não Circulante': 'Obrigações de longo prazo: empréstimos e financiamentos a pagar após 1 ano.',
   'Patrimônio Líquido': 'Recursos próprios da empresa: capital social, reservas e lucros acumulados.',
-  'Lucro do Exercício': 'Lucro Líquido acumulado no exercício, que aumenta o Patrimônio Líquido.',
+  'Resultado do Exercício': 'Lucro Líquido acumulado no exercício, que aumenta o Patrimônio Líquido.',
   'Margem Bruta': 'Percentual do lucro bruto em relação à receita líquida. Mede a rentabilidade do produto/serviço.',
   'Margem EBITDA': 'Percentual do EBITDA em relação à receita líquida. Mede a geração de caixa operacional.',
   'Margem Líquida': 'Percentual do lucro líquido em relação à receita líquida. Resultado final da venda.',
@@ -1919,7 +1919,7 @@ function renderMonthlyBalanco() {
     { label: 'Outros Passivos', cls: 'sub', key: 'outrosPassivos' },
     { label: 'Patrimônio Líquido', cls: 'total', key: 'patrimonioLiquido' },
     { label: 'Capital Social / PL Informado', cls: 'sub', key: 'patrimonioLiquidoInformado' },
-    { label: 'Lucro do Exercício', cls: 'sub', key: 'lucrosAcumulados' },
+    { label: 'Resultado do Exercício', cls: 'sub', key: 'lucrosAcumulados' },
     { label: 'Total Passivo + PL', cls: 'total', key: 'totalPassivoPL' },
   ];
 
