@@ -1449,8 +1449,9 @@ body {
   .wizard-step-indicator .step-icon { width: 28px; height: 28px; font-size: 0.9rem; }
   .wizard-group-title { font-size: 1.25rem; }
   .wizard-group-total .value { font-size: 1.3rem; }
-  .account-item { grid-template-columns: 1fr; gap: 12px; }
-  .account-item input[type="text"].account-value { width: 100%; text-align: left; }
+  .account-main { grid-template-columns: 1fr; gap: 10px; }
+  .account-main input[type="text"].account-name,
+  .account-main input[type="text"].account-value { width: 100%; text-align: left; }
   .account-actions { justify-content: flex-end; }
   .wizard-actions .btn { flex: 1; min-width: auto; padding: 12px 16px; }
   .wizard-scoreboard { justify-content: center; }
