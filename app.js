@@ -419,6 +419,35 @@ const defaultBalanceAccounts = buildDefaultBalanceAccounts();
 
 let balanceAccounts = cloneBalanceAccounts(defaultBalanceAccounts);
 
+function saveState() {
+  try {
+    localStorage.setItem('finsim_state', JSON.stringify(state));
+    localStorage.setItem('finsim_balanceAccounts', JSON.stringify(balanceAccounts));
+  } catch (e) {
+    console.error('Erro ao salvar estado', e);
+  }
+}
+
+function loadState() {
+  try {
+    const savedState = localStorage.getItem('finsim_state');
+    const savedBalance = localStorage.getItem('finsim_balanceAccounts');
+    if (savedState) state = { ...defaultState, ...JSON.parse(savedState) };
+    if (savedBalance) balanceAccounts = cloneBalanceAccounts(JSON.parse(savedBalance));
+  } catch (e) {
+    console.error('Erro ao carregar estado', e);
+  }
+}
+
+function resetState() {
+  localStorage.removeItem('finsim_state');
+  localStorage.removeItem('finsim_balanceAccounts');
+  state = { ...defaultState };
+  balanceAccounts = cloneBalanceAccounts(defaultBalanceAccounts);
+  updateInputDisplays();
+  renderBalancePremissas();
+  updateAll();
+}
 function sumManualDynamicAccounts(accounts, group, matcher, s, dec) {
   return accounts[group].reduce((acc, a) => {
     const v = parseFloat(a.value) || 0;
@@ -2181,10 +2210,6 @@ function renderMonthlyGiro() {
     { label: 'Contas a Pagar', cls: 'sub', key: 'contasPagar' },
     { label: 'PCO', cls: 'total', key: 'pco' },
     { label: 'NCG', cls: 'neg', key: 'ncg' },
-    { label: 'Caixa', cls: 'sub', key: 'caixa' },
-    { label: 'Outras Obrigações', cls: 'sub', key: 'outrasObrigacoes' },
-    { label: 'CDG', cls: 'pos', key: 'cdg' },
-    { label: 'Tesouraria', cls: 'pos', key: 'tesouraria' },
   ];
 
   tbody.innerHTML = rowDefs
