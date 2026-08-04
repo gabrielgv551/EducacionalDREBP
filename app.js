@@ -86,24 +86,6 @@ const defaultState = {
   sazonalidade: 1.0,
 };
 
-const defaultBalanceAccounts = {
-  ativoCirculante: [
-    { id: 'caixaInicial', name: 'Caixa Inicial', value: 500_000, type: 'fixed' },
-  ],
-  ativoNaoCirculante: [
-    { id: 'imobilizado', name: 'Imobilizado', value: 1_500_000, type: 'fixed' },
-  ],
-  passivoCirculante: [
-    { id: 'fornecedores', name: 'Fornecedores', value: 250_000, type: 'fixed' },
-  ],
-  passivoNaoCirculante: [
-    { id: 'emprestimos', name: 'Empréstimos', value: 1_000_000, type: 'fixed' },
-  ],
-  patrimonioLiquido: [
-    { id: 'capitalSocial', name: 'Capital Social', value: 500_000, type: 'fixed' },
-  ],
-};
-
 const accountSuggestions = {
   ativoCirculante: ['Aplicações Financeiras', 'Títulos a Receber', 'Adiantamentos a Fornecedores', 'Estoque de Mercadorias', 'Contas a Receber de Curto Prazo'],
   ativoNaoCirculante: ['Intangível', 'Investimentos', 'Terrenos', 'Máquinas e Equipamentos', 'Veículos'],
@@ -113,7 +95,6 @@ const accountSuggestions = {
 };
 
 let state = { ...defaultState };
-let balanceAccounts = cloneBalanceAccounts(defaultBalanceAccounts);
 let savedScenario = null;
 let selectedTrace = null;
 let viewMode = 'annual'; // 'annual' | 'monthly'
@@ -409,6 +390,35 @@ function calculateBalanco(dre, s = state) {
   const monthly = calculateBalancoMonthly(s);
   return monthly[monthly.length - 1];
 }
+
+function buildDefaultBalanceAccounts() {
+  const dec = calculateDREMonthly(defaultState)[11];
+  return {
+    ativoCirculante: [
+      { id: 'caixaInicial', name: 'Caixa Inicial', value: 500_000, type: 'fixed' },
+      { id: 'contasReceber', name: 'Contas a Receber', value: 0, type: 'fixed' },
+      { id: 'estoque', name: 'Estoque', value: 0, type: 'fixed' },
+    ],
+    ativoNaoCirculante: [
+      { id: 'imobilizado', name: 'Imobilizado', value: 1_500_000, type: 'fixed' },
+    ],
+    passivoCirculante: [
+      { id: 'fornecedores', name: 'Fornecedores', value: 0, type: 'fixed' },
+      { id: 'contasPagar', name: 'Contas a Pagar', value: 0, type: 'fixed' },
+      { id: 'outrasObrigacoes', name: 'Outras Obrigações', value: 250_000, type: 'fixed' },
+    ],
+    passivoNaoCirculante: [
+      { id: 'emprestimos', name: 'Empréstimos', value: 1_000_000, type: 'fixed' },
+    ],
+    patrimonioLiquido: [
+      { id: 'capitalSocial', name: 'Capital Social', value: 500_000, type: 'fixed' },
+    ],
+  };
+}
+
+const defaultBalanceAccounts = buildDefaultBalanceAccounts();
+
+let balanceAccounts = cloneBalanceAccounts(defaultBalanceAccounts);
 
 function sumManualDynamicAccounts(accounts, group, matcher, s, dec) {
   return accounts[group].reduce((acc, a) => {
@@ -1280,6 +1290,7 @@ function renderBalancePremissas(direction = 'none') {
                 const resolved = resolveAccountValue(acc.name, group, acc.value, state, dec);
                 const dynamic = accountIsDynamic(acc.name, group);
                 const hasManualValue = parseFloat(acc.value || 0) !== 0;
+                const displayValue = dynamic && !hasManualValue ? resolved : acc.value;
                 const dynamicDesc = dynamic && hasManualValue
                   ? 'Usando valor digitado manualmente. Zerar o campo para voltar ao cálculo automático.'
                   : resolveAccountDescription(acc.name, group, acc.value, state, dec);
@@ -1288,7 +1299,7 @@ function renderBalancePremissas(direction = 'none') {
         <div class="account-item ${meta.side} ${dynamic ? 'dynamic' : ''} ${dynamic && hasManualValue ? 'manual' : ''}" data-group="${group}" data-index="${index}" title="${dynamic ? dynamicDesc.replace(/"/g, '&quot;') : ''}">
           <div class="account-main">
             <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
-            <input type="text" class="account-value ${dynamic ? 'dynamic-input' : ''}" value="${formatAccountingInput(acc.value)}" data-field="value" inputmode="decimal" placeholder="${dynamic ? 'Saldo inicial R$' : 'R$'}" ${dynamic ? 'data-tooltip="Valor base usado no cálculo automático"' : ''} />
+            <input type="text" class="account-value ${dynamic ? 'dynamic-input' : ''}" value="${formatAccountingInput(displayValue)}" data-field="value" inputmode="decimal" placeholder="${dynamic ? 'Saldo inicial R$' : 'R$'}" ${dynamic ? 'data-tooltip="Valor base usado no cálculo automático"' : ''} />
             <div class="account-actions">
               ${dynamic ? `<span class="dynamic-badge ${hasManualValue ? 'manual' : ''}" title="${dynamicDesc.replace(/"/g, '&quot;')}">${hasManualValue ? '✏️ Manual' : '⚡ Automático'}</span>` : ''}
               ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
