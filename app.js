@@ -79,6 +79,7 @@ const defaultState = {
   despesasFixas: 800_000,
   despesasVariaveis: 12,
   despesasEmprestimos: 120_000,
+  dividendosMensais: 0,
   pmr: 45,
   pme: 35,
   pmp: 30,
@@ -182,6 +183,10 @@ function getOtherResolvedAccountsTotal(accounts, group, excludeId, m, dec, exclu
     .reduce((acc, a) => acc + resolveAccountValue(a.name, group, a.value, m, dec), 0);
 }
 
+function accountIsEmprestimo(name) {
+  return accountMatches(name, 'empréstimo', 'emprestimo', 'financiamento');
+}
+
 function accountIsDynamic(name, group) {
   if (group === 'ativoCirculante') {
     return accountMatches(name, 'aplicação', 'aplicacao', 'aplicacoes', 'aplicações', 'título', 'titulo', 'contas a receber', 'receber', 'estoque');
@@ -235,6 +240,7 @@ const inputDefs = [
   ['despesasFixas', 'valDespesasFixas', 'currency', 0, 8000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasFixas) : formatCurrency(state.despesasFixas)],
   ['despesasVariaveis', 'valDespesasVariaveis', 'percent', 0, 40, () => formatPercentView(state.despesasVariaveis)],
   ['despesasEmprestimos', 'valDespesasEmprestimos', 'currency', 0, 2000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasEmprestimos) : formatCurrency(state.despesasEmprestimos)],
+  ['dividendosMensais', 'valDividendosMensais', 'currency', 0, 2000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.dividendosMensais) : formatCurrency(state.dividendosMensais)],
   ['pmr', 'valPmr', 'days', 0, 180, (v) => `${v} dias`],
   ['pme', 'valPme', 'days', 0, 180, (v) => `${v} dias`],
   ['pmp', 'valPmp', 'days', 0, 180, (v) => `${v} dias`],
@@ -337,6 +343,7 @@ function calculateDRE(s = state) {
     depreciacao: sum('depreciacao'),
     ebit: sum('ebit'),
     despesasEmprestimos: sum('despesasEmprestimos'),
+    dividendos: sum('dividendos'),
     laIR: sum('laIR'),
     ir: sum('ir'),
     lucroLiquido: sum('lucroLiquido'),
@@ -349,9 +356,11 @@ function calculateDREMonthly(s = state) {
   const baseDespesasFixas = s.despesasFixas / 12;
   const baseDepreciacao = s.depreciacao / 12;
   const baseDespesasEmprestimos = s.despesasEmprestimos / 12;
+  const baseDividendos = s.dividendosMensais / 12;
   return months.map((month, i) => {
     const factor = Math.pow(1 + s.sazonalidade / 100, i);
     const receitaBruta = baseReceita * factor;
+    const dividendos = baseDividendos * factor;
     const receitaLiquida = receitaBruta * (1 - s.deducoes / 100);
     const cmv = receitaLiquida * (s.cmvPercent / 100);
     const lucroBruto = receitaLiquida - cmv;
@@ -379,6 +388,7 @@ function calculateDREMonthly(s = state) {
       depreciacao: baseDepreciacao,
       ebit,
       despesasEmprestimos,
+      dividendos,
       laIR,
       ir,
       lucroLiquido,
@@ -480,10 +490,30 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const totalPassivoCirculanteInformado = totalPassivoCirculanteNaoDinamico;
   const totalPassivoNaoCirculanteInformado = sumResolvedAccounts(accounts, 'passivoNaoCirculante', s, dec);
   const passivoNaoCirculanteContasMensais = {};
+  const emprestimoParcelasMensais = {};
+  const totalAmortizacaoMensal = new Array(monthlyDRE.length).fill(0);
   accounts.passivoNaoCirculante.forEach((a) => {
     const v = resolveAccountValue(a.name, 'passivoNaoCirculante', a.value, s, dec);
-    passivoNaoCirculanteContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
+    if (accountIsEmprestimo(a.name)) {
+      const parcelas = Math.max(0, parseInt(a.parcelas, 10) || 0);
+      const amortizacaoMensal = parcelas > 0 ? v / parcelas : 0;
+      const saldos = [];
+      for (let i = 0; i < monthlyDRE.length; i++) {
+        const amortizado = parcelas > 0 ? Math.min(i, parcelas) * amortizacaoMensal : 0;
+        saldos.push(Math.max(0, v - amortizado));
+        if (parcelas > 0 && i < parcelas) {
+          totalAmortizacaoMensal[i] += amortizacaoMensal;
+        }
+      }
+      passivoNaoCirculanteContasMensais[a.id] = saldos;
+      emprestimoParcelasMensais[a.id] = { saldos, amortizacaoMensal, parcelas };
+    } else {
+      passivoNaoCirculanteContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
+    }
   });
+  const totalPassivoNaoCirculanteInformadoMensal = monthlyDRE.map((_, i) =>
+    accounts.passivoNaoCirculante.reduce((acc, a) => acc + passivoNaoCirculanteContasMensais[a.id][i], 0)
+  );
   const totalPatrimonioLiquidoInformado = sumResolvedAccounts(accounts, 'patrimonioLiquido', s, dec);
   const patrimonioLiquidoContasMensais = {};
   accounts.patrimonioLiquido.forEach((a) => {
@@ -552,13 +582,13 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   });
 
   const caixaMensal = new Array(monthlyDRE.length).fill(0);
-  caixaMensal[0] = caixaInicial;
+  caixaMensal[0] = caixaInicial - monthlyDRE[0].dividendos;
   for (let i = 1; i < monthlyDRE.length; i++) {
-    caixaMensal[i] = caixaMensal[i - 1] + monthlyDRE[i].lucroLiquido - (ncgMensal[i] - ncgMensal[i - 1]);
+    caixaMensal[i] = caixaMensal[i - 1] + monthlyDRE[i].lucroLiquido - (ncgMensal[i] - ncgMensal[i - 1]) - monthlyDRE[i].dividendos;
   }
 
   const lucroLiquidoAcumuladoMensal = monthlyDRE.map((_, i) =>
-    monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0)
+    monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido - x.dividendos, 0)
   );
 
   const outrosAtivosMensal = new Array(monthlyDRE.length).fill(0);
