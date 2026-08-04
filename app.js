@@ -541,6 +541,10 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const totalPassivoPLMensal = new Array(monthlyDRE.length).fill(0);
   const ativoCirculanteMensal = new Array(monthlyDRE.length).fill(0);
   const ativoTotalMensal = new Array(monthlyDRE.length).fill(0);
+  const acoMensal = new Array(monthlyDRE.length).fill(0);
+  const pcoMensal = new Array(monthlyDRE.length).fill(0);
+  const cdgMensal = new Array(monthlyDRE.length).fill(0);
+  const tesourariaMensal = new Array(monthlyDRE.length).fill(0);
 
   for (let i = 0; i < monthlyDRE.length; i++) {
     const lucrosAcumulados = lucroLiquidoAcumuladoMensal[i];
@@ -568,6 +572,12 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     const ncg = aco - pco;
     const cdg = caixaMensal[i] + totalPassivoCirculanteNaoDinamico;
     const tesouraria = cdg - ncg;
+
+    acoMensal[i] = aco;
+    pcoMensal[i] = pco;
+    ncgMensal[i] = ncg;
+    cdgMensal[i] = cdg;
+    tesourariaMensal[i] = tesouraria;
 
     outrosAtivosMensal[i] = outrosAtivos;
     outrosPassivosMensal[i] = outrosPassivos;
@@ -604,11 +614,11 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     lucrosAcumuladosIniciais: 0,
     patrimonioLiquido: patrimonioLiquidoMensal[i],
     totalPassivoPL: totalPassivoPLMensal[i],
-    aco,
-    pco,
-    ncg,
-    cdg,
-    tesouraria,
+    aco: acoMensal[i],
+    pco: pcoMensal[i],
+    ncg: ncgMensal[i],
+    cdg: cdgMensal[i],
+    tesouraria: tesourariaMensal[i],
   }));
 }
 
