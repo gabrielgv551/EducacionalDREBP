@@ -92,7 +92,7 @@ const defaultBalanceAccounts = {
     { id: 'imobilizado', name: 'Imobilizado', value: 1_500_000, type: 'fixed' },
   ],
   passivoCirculante: [
-    { id: 'outrasObrigacoes', name: 'Outras Obrigações', value: 250_000, type: 'fixed' },
+    { id: 'fornecedores', name: 'Fornecedores', value: 250_000, type: 'fixed' },
   ],
   passivoNaoCirculante: [
     { id: 'emprestimos', name: 'Empréstimos', value: 1_000_000, type: 'fixed' },
@@ -418,7 +418,13 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const caixaInicial = getResolvedAccountValue(accounts, 'ativoCirculante', 'caixaInicial', s, dec);
   const outrasAtivoCirculante = getOtherResolvedAccountsTotal(accounts, 'ativoCirculante', 'caixaInicial', s, dec, true);
   const totalAtivoNaoCirculanteInformado = sumResolvedAccounts(accounts, 'ativoNaoCirculante', s, dec);
-  const totalPassivoCirculanteInformado = sumResolvedAccounts(accounts, 'passivoCirculante', s, dec);
+  const passivoCirculanteDinamicas = accounts.passivoCirculante.filter((a) => accountIsDynamic(a.name, 'passivoCirculante'));
+  const passivoCirculanteNaoDinamicas = accounts.passivoCirculante.filter((a) => !accountIsDynamic(a.name, 'passivoCirculante'));
+  const totalPassivoCirculanteNaoDinamico = passivoCirculanteNaoDinamicas.reduce(
+    (acc, a) => acc + resolveAccountValue(a.name, 'passivoCirculante', a.value, s, dec),
+    0
+  );
+  const totalPassivoCirculanteInformado = totalPassivoCirculanteNaoDinamico;
   const totalPassivoNaoCirculanteInformado = sumResolvedAccounts(accounts, 'passivoNaoCirculante', s, dec);
   const totalPatrimonioLiquidoInformado = sumResolvedAccounts(accounts, 'patrimonioLiquido', s, dec);
 
@@ -457,6 +463,20 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   );
   const ncgMensal = contasReceberMensal.map((cr, i) => cr + estoqueMensal[i] - contasPagarMensal[i]);
 
+  // Distribui o valor dinâmico do passivo circulante entre as contas dinâmicas proporcionalmente aos valores informados
+  const totalManualDinamico = passivoCirculanteDinamicas.reduce((acc, a) => acc + (parseFloat(a.value) || 0), 0);
+  const dynamicWeights = passivoCirculanteDinamicas.map((a) =>
+    totalManualDinamico > 0 ? (parseFloat(a.value) || 0) / totalManualDinamico : (passivoCirculanteDinamicas.length > 0 ? 1 / passivoCirculanteDinamicas.length : 0)
+  );
+  const passivoCirculanteContasMensais = {};
+  passivoCirculanteDinamicas.forEach((a, idx) => {
+    passivoCirculanteContasMensais[a.id] = contasPagarMensal.map((total) => total * dynamicWeights[idx]);
+  });
+  passivoCirculanteNaoDinamicas.forEach((a) => {
+    const v = resolveAccountValue(a.name, 'passivoCirculante', a.value, s, dec);
+    passivoCirculanteContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
+  });
+
   const caixaMensal = new Array(monthlyDRE.length).fill(0);
   caixaMensal[0] = caixaInicial;
   for (let i = 1; i < monthlyDRE.length; i++) {
@@ -480,7 +500,7 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   for (let i = 0; i < monthlyDRE.length; i++) {
     const lucrosAcumulados = lucroLiquidoAcumuladoMensal[i];
 
-    const passivoCirculante = contasPagarMensal[i] + totalPassivoCirculanteInformado;
+    const passivoCirculante = contasPagarMensal[i] + totalPassivoCirculanteNaoDinamico;
     const patrimonioLiquido = totalPatrimonioLiquidoInformado + lucrosAcumulados;
 
     // Ativo real sem as contas residuais (Outros Ativos / Outros Passivos)
@@ -520,7 +540,8 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     outrosAtivos: outrosAtivosMensal[i],
     ativoTotal: ativoTotalMensal[i],
     contasPagar: contasPagarMensal[i],
-    outrasObrigacoes: totalPassivoCirculanteInformado,
+    outrasObrigacoes: totalPassivoCirculanteNaoDinamico,
+    passivoCirculanteContas: passivoCirculanteContasMensais,
     passivoCirculante: passivoCirculanteMensal[i],
     passivoNaoCirculante: passivoNaoCirculanteMensal[i],
     outrosPassivos: outrosPassivosMensal[i],
@@ -1062,9 +1083,8 @@ function updateBalanco() {
     .filter((acc) => acc.id !== 'caixaInicial' && !accountIsDynamic(acc.name, 'ativoCirculante'))
     .map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'ativoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'ativoCirculante', acc.value, state, dec)]);
   const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'ativoNaoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'ativoNaoCirculante', acc.value, state, dec)]);
-  const passivoCirculanteContas = balanceAccounts.passivoCirculante
-    .filter((acc) => !accountIsDynamic(acc.name, 'passivoCirculante'))
-    .map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoCirculante', acc.value, state, dec)]);
+  const passivoCirculanteDinamicas = balanceAccounts.passivoCirculante.filter((acc) => accountIsDynamic(acc.name, 'passivoCirculante'));
+  const passivoCirculanteNaoDinamicas = balanceAccounts.passivoCirculante.filter((acc) => !accountIsDynamic(acc.name, 'passivoCirculante'));
   const passivoNaoCirculanteContas = balanceAccounts.passivoNaoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoNaoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoNaoCirculante', acc.value, state, dec)]);
   const patrimonioLiquidoContas = balanceAccounts.patrimonioLiquido.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'patrimonioLiquido', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'patrimonioLiquido', acc.value, state, dec)]);
 
@@ -1084,8 +1104,15 @@ function updateBalanco() {
   document.getElementById('totalAtivo').textContent = `Total Ativo: ${formatCurrency(b.ativoTotal)}`;
 
   const passivoItems = [
-    ['Contas a Pagar', b.contasPagar, 'pagar', `CMV de dezembro × PMP ÷ 30 = ${formatCurrency(dec.cmv)} × ${state.pmp} ÷ 30`],
-    ...passivoCirculanteContas,
+    ...(passivoCirculanteDinamicas.length > 0
+      ? passivoCirculanteDinamicas.map((acc) => [
+          acc.name,
+          b.passivoCirculanteContas[acc.id][11],
+          acc.id,
+          resolveAccountDescription(acc.name, 'passivoCirculante', acc.value, state, dec),
+        ])
+      : [['Contas a Pagar', b.contasPagar, 'pagar', `CMV de dezembro × PMP ÷ 30 = ${formatCurrency(dec.cmv)} × ${state.pmp} ÷ 30`]]),
+    ...passivoCirculanteNaoDinamicas.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoCirculante', acc.value, state, dec)]),
   ];
   const pnpItems = [
     ...passivoNaoCirculanteContas,
@@ -2015,6 +2042,9 @@ function renderMonthlyBalanco() {
 
   head.innerHTML = `<tr><th>Descrição</th>${monthly.map((m) => `<th>${m.month}</th>`).join('')}</tr>`;
 
+  const passivoCirculanteDinamicas = balanceAccounts.passivoCirculante.filter((a) => accountIsDynamic(a.name, 'passivoCirculante'));
+  const passivoCirculanteNaoDinamicas = balanceAccounts.passivoCirculante.filter((a) => !accountIsDynamic(a.name, 'passivoCirculante'));
+
   const rowDefs = [
     { label: 'Ativo Circulante', cls: 'total', key: 'ativoCirculante' },
     { label: 'Caixa', cls: 'sub', key: 'caixa' },
@@ -2024,8 +2054,10 @@ function renderMonthlyBalanco() {
     { label: 'Outros Ativos', cls: 'sub', key: 'outrosAtivos' },
     { label: 'Total Ativo', cls: 'total', key: 'ativoTotal' },
     { label: 'Passivo Circulante', cls: 'total', key: 'passivoCirculante' },
-    { label: 'Contas a Pagar', cls: 'sub', key: 'contasPagar' },
-    { label: 'Outras Obrigações', cls: 'sub', key: 'outrasObrigacoes' },
+    ...(passivoCirculanteDinamicas.length > 0
+      ? passivoCirculanteDinamicas.map((a) => ({ label: a.name, cls: 'sub', get: (m) => m.passivoCirculanteContas[a.id] }))
+      : [{ label: 'Contas a Pagar', cls: 'sub', key: 'contasPagar' }]),
+    ...passivoCirculanteNaoDinamicas.map((a) => ({ label: a.name, cls: 'sub', get: (m) => m.passivoCirculanteContas[a.id] })),
     { label: 'Passivo Não Circulante', cls: 'total', key: 'passivoNaoCirculante' },
     { label: 'Outros Passivos', cls: 'sub', key: 'outrosPassivos' },
     { label: 'Patrimônio Líquido', cls: 'total', key: 'patrimonioLiquido' },
@@ -2036,7 +2068,10 @@ function renderMonthlyBalanco() {
 
   tbody.innerHTML = rowDefs
     .map((r) => {
-      const monthlyValues = monthly.map((m) => `<td>${formatCurrency(m[r.key])}</td>`).join('');
+      const monthlyValues = monthly.map((m) => {
+        const v = r.get ? r.get(m) : m[r.key];
+        return `<td>${formatCurrency(v)}</td>`;
+      }).join('');
       return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
     })
     .join('');
