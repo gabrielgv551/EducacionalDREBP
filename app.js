@@ -450,7 +450,17 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   );
   const totalPassivoCirculanteInformado = totalPassivoCirculanteNaoDinamico;
   const totalPassivoNaoCirculanteInformado = sumResolvedAccounts(accounts, 'passivoNaoCirculante', s, dec);
+  const passivoNaoCirculanteContasMensais = {};
+  accounts.passivoNaoCirculante.forEach((a) => {
+    const v = resolveAccountValue(a.name, 'passivoNaoCirculante', a.value, s, dec);
+    passivoNaoCirculanteContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
+  });
   const totalPatrimonioLiquidoInformado = sumResolvedAccounts(accounts, 'patrimonioLiquido', s, dec);
+  const patrimonioLiquidoContasMensais = {};
+  accounts.patrimonioLiquido.forEach((a) => {
+    const v = resolveAccountValue(a.name, 'patrimonioLiquido', a.value, s, dec);
+    patrimonioLiquidoContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
+  });
 
   // Valores manuais para contas dinâmicas (sobrescrevem o cálculo automático no mês 0)
   const manualContasReceber = sumManualDynamicAccounts(
@@ -569,8 +579,10 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     passivoCirculanteContas: passivoCirculanteContasMensais,
     passivoCirculante: passivoCirculanteMensal[i],
     passivoNaoCirculante: passivoNaoCirculanteMensal[i],
+    passivoNaoCirculanteContas: passivoNaoCirculanteContasMensais,
     outrosPassivos: outrosPassivosMensal[i],
     patrimonioLiquidoInformado: totalPatrimonioLiquidoInformado,
+    patrimonioLiquidoContas: patrimonioLiquidoContasMensais,
     lucrosAcumulados: lucroLiquidoAcumuladoMensal[i],
     lucrosAcumuladosIniciais: 0,
     patrimonioLiquido: patrimonioLiquidoMensal[i],
@@ -2083,6 +2095,7 @@ function renderMonthlyBalanco() {
   const passivoCirculanteDinamicas = balanceAccounts.passivoCirculante.filter((a) => accountIsDynamic(a.name, 'passivoCirculante'));
   const passivoCirculanteNaoDinamicas = balanceAccounts.passivoCirculante.filter((a) => !accountIsDynamic(a.name, 'passivoCirculante'));
   const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante;
+  const passivoNaoCirculanteContas = balanceAccounts.passivoNaoCirculante;
 
   const rowDefs = [
     { label: 'Ativo Circulante', cls: 'total', key: 'ativoCirculante' },
@@ -2099,6 +2112,7 @@ function renderMonthlyBalanco() {
       : [{ label: 'Contas a Pagar', cls: 'sub', key: 'contasPagar' }]),
     ...passivoCirculanteNaoDinamicas.map((a) => ({ label: a.name, cls: 'sub', get: (m, i) => m.passivoCirculanteContas[a.id][i] })),
     { label: 'Passivo Não Circulante', cls: 'total', key: 'passivoNaoCirculante' },
+    ...passivoNaoCirculanteContas.map((a) => ({ label: a.name, cls: 'sub', get: (m, i) => m.passivoNaoCirculanteContas[a.id][i] })),
     { label: 'Outros Passivos', cls: 'sub', key: 'outrosPassivos' },
     { label: 'Patrimônio Líquido', cls: 'total', key: 'patrimonioLiquido' },
     { label: 'Capital Social / PL Informado', cls: 'sub', key: 'patrimonioLiquidoInformado' },
