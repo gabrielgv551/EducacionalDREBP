@@ -6,18 +6,20 @@ const formatPercent = (v) => `${v.toFixed(1).replace('.', ',')}%`;
 function formatAccountingInput(v) {
   if (v === '' || v == null || Number.isNaN(Number(v))) return '';
   const num = Math.round(parseFloat(v));
-  return num.toLocaleString('pt-BR');
+  const abs = Math.abs(num);
+  return (num < 0 ? '-' : '') + abs.toLocaleString('pt-BR');
 }
 
 function parseAccountingInput(s) {
   if (typeof s !== 'string') return parseFloat(s) || 0;
-  const cleaned = s.replace(/\./g, '').replace(/,/g, '.');
+  const cleaned = s.replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.\-]/g, '');
+  if (cleaned === '' || cleaned === '-') return 0;
   return parseFloat(cleaned) || 0;
 }
 
 function maskAccountingInput(input) {
-  const raw = input.value.replace(/[^\d,]/g, '');
-  const numeric = parseFloat(raw.replace(/\./g, '').replace(/,/g, '.')) || 0;
+  const raw = input.value.replace(/[^\d,\-]/g, '');
+  const numeric = parseAccountingInput(raw);
   const formatted = formatAccountingInput(numeric);
   const prevLen = input.value.length;
   const prevCursor = input.selectionStart || 0;
@@ -161,10 +163,10 @@ function resolveAccountValue(name, group, baseValue, m, dec) {
 
   if (group === 'ativoNaoCirculante') {
     if (accountMatches(name, 'imobilizado', 'máquina', 'maquina', 'equipamento', 'veículo', 'veiculo', 'frota', 'móvel', 'movel', 'instalação', 'instalacao')) {
-      return Math.max(0, v - m.depreciacao);
+      return v - m.depreciacao;
     }
     if (accountMatches(name, 'intangível', 'intangivel', 'software', 'patente', 'marca')) {
-      return Math.max(0, v - m.depreciacao * 0.5); // amortização simplificada
+      return v - m.depreciacao * 0.5; // amortização simplificada
     }
   }
 
@@ -176,7 +178,7 @@ function resolveAccountValue(name, group, baseValue, m, dec) {
 
   if (group === 'passivoNaoCirculante') {
     if (accountMatches(name, 'empréstimo', 'emprestimo', 'financiamento')) {
-      return Math.max(0, v - m.despesasEmprestimos);
+      return v - m.despesasEmprestimos;
     }
   }
 
