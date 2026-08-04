@@ -27,6 +27,49 @@ function maskAccountingInput(input) {
   input.setSelectionRange(newCursor, newCursor);
 }
 
+// Helpers para os novos inputs de texto das premissas
+function clamp(v, min, max) {
+  if (min != null && v < min) return Number(min);
+  if (max != null && v > max) return Number(max);
+  return v;
+}
+
+function parseNumberBR(s) {
+  if (typeof s !== 'string') return Number(s) || 0;
+  const cleaned = s.replace(/\./g, '').replace(/,/g, '.').replace(/[^\d.\-]/g, '');
+  if (cleaned === '' || cleaned === '-') return 0;
+  return parseFloat(cleaned) || 0;
+}
+
+function formatCurrencyInput(v) {
+  const n = Math.round(parseNumberBR(v));
+  return n.toLocaleString('pt-BR');
+}
+
+function formatPercentInput(v, decimals = 1) {
+  const n = parseNumberBR(v);
+  return n.toFixed(decimals).replace('.', ',');
+}
+
+function formatDaysInput(v) {
+  return String(Math.round(parseNumberBR(v)));
+}
+
+function formatInputByType(v, type) {
+  if (type === 'currency') return formatCurrencyInput(v);
+  if (type === 'percent') return formatPercentInput(v);
+  if (type === 'percentSigned') return formatPercentInput(v);
+  if (type === 'days') return formatDaysInput(v);
+  return String(v);
+}
+
+function parseInputByType(s, type) {
+  if (type === 'currency') return Math.round(parseNumberBR(s));
+  if (type === 'percent' || type === 'percentSigned') return parseNumberBR(s);
+  if (type === 'days') return Math.round(parseNumberBR(s));
+  return parseNumberBR(s);
+}
+
 const defaultState = {
   receitaBruta: 5_000_000,
   deducoes: 12,
@@ -203,22 +246,29 @@ const formatCurrencyMonthly = (v) => formatCurrency(v / 12);
 const formatPercentView = (v) => formatPercent(v);
 
 const inputDefs = [
-  ['receitaBruta', 'valReceitaBruta', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.receitaBruta) : formatCurrency(state.receitaBruta)],
-  ['deducoes', 'valDeducoes', () => formatPercentView(state.deducoes)],
-  ['cmvPercent', 'valCmvPercent', () => formatPercentView(state.cmvPercent)],
-  ['despesasFixas', 'valDespesasFixas', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasFixas) : formatCurrency(state.despesasFixas)],
-  ['despesasVariaveis', 'valDespesasVariaveis', () => formatPercentView(state.despesasVariaveis)],
-  ['despesasEmprestimos', 'valDespesasEmprestimos', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasEmprestimos) : formatCurrency(state.despesasEmprestimos)],
-  ['pmr', 'valPmr', (v) => `${v} dias`],
-  ['pme', 'valPme', (v) => `${v} dias`],
-  ['pmp', 'valPmp', (v) => `${v} dias`],
-  ['depreciacao', 'valDepreciacao', () => viewMode === 'monthly' ? formatCurrencyMonthly(state.depreciacao) : formatCurrency(state.depreciacao)],
-  ['sazonalidade', 'valSazonalidade', (v) => `${v > 0 ? '+' : ''}${v.toFixed(1).replace('.', ',')}% / mês`],
+  ['receitaBruta', 'valReceitaBruta', 'currency', 0, 20000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.receitaBruta) : formatCurrency(state.receitaBruta)],
+  ['deducoes', 'valDeducoes', 'percent', 0, 35, () => formatPercentView(state.deducoes)],
+  ['cmvPercent', 'valCmvPercent', 'percent', 0, 90, () => formatPercentView(state.cmvPercent)],
+  ['despesasFixas', 'valDespesasFixas', 'currency', 0, 8000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasFixas) : formatCurrency(state.despesasFixas)],
+  ['despesasVariaveis', 'valDespesasVariaveis', 'percent', 0, 40, () => formatPercentView(state.despesasVariaveis)],
+  ['despesasEmprestimos', 'valDespesasEmprestimos', 'currency', 0, 2000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasEmprestimos) : formatCurrency(state.despesasEmprestimos)],
+  ['pmr', 'valPmr', 'days', 0, 180, (v) => `${v} dias`],
+  ['pme', 'valPme', 'days', 0, 180, (v) => `${v} dias`],
+  ['pmp', 'valPmp', 'days', 0, 180, (v) => `${v} dias`],
+  ['depreciacao', 'valDepreciacao', 'currency', 0, 2000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.depreciacao) : formatCurrency(state.depreciacao)],
+  ['sazonalidade', 'valSazonalidade', 'percentSigned', -5, 10, (v) => `${v > 0 ? '+' : ''}${v.toFixed(1).replace('.', ',')}% / mês`],
 ];
 
+function getInputDef(key) {
+  return inputDefs.find(([k]) => k === key);
+}
+
 function updateInputDisplays() {
-  inputDefs.forEach(([key, displayId, formatter]) => {
-    displays[key].textContent = formatter(state[key]);
+  inputDefs.forEach(([key, displayId, type, min, max, formatter]) => {
+    const input = inputs[key];
+    const display = displays[key];
+    if (input) input.value = formatInputByType(state[key], type);
+    if (display) display.textContent = formatter(state[key]);
   });
 }
 
@@ -242,17 +292,48 @@ function initViewToggle() {
 }
 
 function initInputs() {
-  inputDefs.forEach(([key, displayId, formatter]) => {
+  inputDefs.forEach(([key, displayId, type, min, max, formatter]) => {
     const el = document.getElementById(key);
     const disp = document.getElementById(displayId);
+    if (!el) return;
     inputs[key] = el;
     displays[key] = disp;
-    el.value = state[key];
-    disp.textContent = formatter(state[key]);
+
+    el.value = formatInputByType(state[key], type);
+    if (disp) disp.textContent = formatter(state[key]);
+
+    let rawDuringEdit = '';
+
+    el.addEventListener('focus', () => {
+      rawDuringEdit = el.value;
+      // Seleciona o valor para facilitar a substituição
+      el.select();
+    });
+
     el.addEventListener('input', () => {
-      state[key] = parseFloat(el.value);
-      disp.textContent = formatter(state[key]);
+      rawDuringEdit = el.value;
+      // Durante a digitação permite caracteres livres; atualiza display com preview quando possível
+      const parsed = parseInputByType(rawDuringEdit, type);
+      if (!Number.isNaN(parsed) && disp) {
+        const previewState = { ...state, [key]: clamp(parsed, min, max) };
+        disp.textContent = formatter(previewState[key]);
+      }
+    });
+
+    el.addEventListener('blur', () => {
+      let parsed = parseInputByType(rawDuringEdit, type);
+      if (Number.isNaN(parsed)) parsed = 0;
+      parsed = clamp(parsed, min, max);
+      state[key] = parsed;
+      el.value = formatInputByType(parsed, type);
+      if (disp) disp.textContent = formatter(parsed);
       updateAll();
+    });
+
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        el.blur();
+      }
     });
   });
 }
@@ -1560,10 +1641,7 @@ function initActions() {
   safeAddListener('btnPadrao', 'click', () => {
     state = { ...defaultState };
     balanceAccounts = cloneBalanceAccounts(defaultBalanceAccounts);
-    inputDefs.forEach(([key]) => {
-      inputs[key].value = state[key];
-      displays[key].textContent = getFormatter(key)(state[key]);
-    });
+    updateInputDisplays();
     renderBalancePremissas();
     updateAll();
   });
@@ -1672,11 +1750,6 @@ function simulateScenario(key, delta) {
     Saldo de Tesouraria passa para <strong>${formatCurrency(g.tesouraria)}</strong>
     (<span style="color:${diff >= 0 ? 'var(--success)' : 'var(--danger)'}">${diff >= 0 ? '+' : ''}${formatCurrency(diff)}</span>).
   `;
-}
-
-function getFormatter(key) {
-  const found = inputDefs.find(([k]) => k === key);
-  return found ? found[2] : (v) => v;
 }
 
 /* Aprender */
