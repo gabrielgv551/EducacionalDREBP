@@ -732,7 +732,8 @@ function calculateDFCMonthly(s = state) {
 
     const lucroLiquido = monthlyDRE[i].lucroLiquido;
     const depreciacao = b.depreciacao;
-    const fco = lucroLiquido + depreciacao + ajusteContasReceber + ajusteEstoque + ajusteOutrosAC + ajusteFornecedores + ajusteOutrasObrigacoes;
+    const resultadoAjustado = lucroLiquido + depreciacao;
+    const fco = resultadoAjustado + ajusteContasReceber + ajusteEstoque + ajusteOutrosAC + ajusteFornecedores + ajusteOutrasObrigacoes;
 
     const aquisicaoImobilizado = 0; // o modelo não prevê capex; o imobilizado só reduz pela depreciação (ajustada na FCO)
     const fci = -aquisicaoImobilizado;
@@ -749,6 +750,7 @@ function calculateDFCMonthly(s = state) {
       month: b.month,
       lucroLiquido,
       depreciacao,
+      resultadoAjustado,
       ajusteContasReceber,
       ajusteEstoque,
       ajusteOutrosAC,
@@ -2353,6 +2355,7 @@ function renderMonthlyDfc() {
     { label: 'ATIVIDADES OPERACIONAIS', cls: 'section', get: () => null },
     { label: 'Resultado Líquido do Exercício', cls: 'sub', key: 'lucroLiquido' },
     { label: '(+) Depreciação e Amortização', cls: 'sub', key: 'depreciacao' },
+    { label: 'Resultado Ajustado (LL + Depreciação)', cls: 'total', key: 'resultadoAjustado' },
     { label: '(∓) Contas a Receber', cls: 'sub', key: 'ajusteContasReceber' },
     { label: '(∓) Estoque', cls: 'sub', key: 'ajusteEstoque' },
     { label: '(∓) Outros Ativos Circulantes', cls: 'sub', key: 'ajusteOutrosAC' },
