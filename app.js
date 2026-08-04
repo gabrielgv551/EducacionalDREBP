@@ -2210,6 +2210,7 @@ function renderMonthlyGiro() {
     { label: 'Contas a Pagar', cls: 'sub', key: 'contasPagar' },
     { label: 'PCO', cls: 'total', key: 'pco' },
     { label: 'NCG', cls: 'neg', key: 'ncg' },
+    { label: 'Caixa', cls: 'sub', key: 'caixa' },
   ];
 
   tbody.innerHTML = rowDefs
