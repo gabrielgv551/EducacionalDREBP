@@ -486,21 +486,25 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   );
 
   // Prepara vetores mensais para contas dinâmicas operacionais
-  // Se houver saldo inicial manual, mantém a proporção ao longo do ano (reflexo do saldo inicial)
+  // Se houver saldo inicial manual, aplica um ajuste fixo sobre o cálculo automático,
+  // mantendo o saldo inicial em jan e respeitando os prazos na variação mensal.
   const contasReceberAutoBase = monthlyDRE[0].receitaLiquida * (s.pmr / daysInMonth);
+  const contasReceberAjuste = manualContasReceber - contasReceberAutoBase;
   const contasReceberMensal = monthlyDRE.map((m) => {
     const auto = m.receitaLiquida * (s.pmr / daysInMonth);
-    return manualContasReceber > 0 ? manualContasReceber * (auto / contasReceberAutoBase) : auto;
+    return manualContasReceber > 0 ? auto + contasReceberAjuste : auto;
   });
   const estoqueAutoBase = monthlyDRE[0].cmv * (s.pme / daysInMonth);
+  const estoqueAjuste = manualEstoque - estoqueAutoBase;
   const estoqueMensal = monthlyDRE.map((m) => {
     const auto = m.cmv * (s.pme / daysInMonth);
-    return manualEstoque > 0 ? manualEstoque * (auto / estoqueAutoBase) : auto;
+    return manualEstoque > 0 ? auto + estoqueAjuste : auto;
   });
   const contasPagarAutoBase = monthlyDRE[0].cmv * (s.pmp / daysInMonth);
+  const contasPagarAjuste = manualContasPagar - contasPagarAutoBase;
   const contasPagarMensal = monthlyDRE.map((m) => {
     const auto = m.cmv * (s.pmp / daysInMonth);
-    return manualContasPagar > 0 ? manualContasPagar * (auto / contasPagarAutoBase) : auto;
+    return manualContasPagar > 0 ? auto + contasPagarAjuste : auto;
   });
   const ncgMensal = contasReceberMensal.map((cr, i) => cr + estoqueMensal[i] - contasPagarMensal[i]);
 
@@ -558,6 +562,12 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     const totalPassivoPL = passivoCirculante + passivoNaoCirculante + patrimonioLiquido;
     const ativoCirculante = caixaMensal[i] + contasReceberMensal[i] + estoqueMensal[i] + outrasAtivoCirculante;
     const ativoTotal = ativoCirculante + ativoNaoCirculante;
+
+    const aco = contasReceberMensal[i] + estoqueMensal[i];
+    const pco = contasPagarMensal[i];
+    const ncg = aco - pco;
+    const cdg = caixaMensal[i] + totalPassivoCirculanteNaoDinamico;
+    const tesouraria = cdg - ncg;
 
     outrosAtivosMensal[i] = outrosAtivos;
     outrosPassivosMensal[i] = outrosPassivos;
