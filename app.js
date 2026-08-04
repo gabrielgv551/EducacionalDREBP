@@ -421,6 +421,7 @@ function buildDefaultBalanceAccounts() {
     ],
     patrimonioLiquido: [
       { id: 'capitalSocial', name: 'Capital Social', value: 500_000, type: 'fixed' },
+      { id: 'lucrosPrejuizosAcumulados', name: 'Lucros ou prejuízos acumulados', value: 0, type: 'fixed' },
     ],
   };
 }
@@ -582,9 +583,9 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   });
 
   const caixaMensal = new Array(monthlyDRE.length).fill(0);
-  caixaMensal[0] = caixaInicial - monthlyDRE[0].dividendos;
+  caixaMensal[0] = caixaInicial - monthlyDRE[0].dividendos - totalAmortizacaoMensal[0];
   for (let i = 1; i < monthlyDRE.length; i++) {
-    caixaMensal[i] = caixaMensal[i - 1] + monthlyDRE[i].lucroLiquido - (ncgMensal[i] - ncgMensal[i - 1]) - monthlyDRE[i].dividendos;
+    caixaMensal[i] = caixaMensal[i - 1] + monthlyDRE[i].lucroLiquido - (ncgMensal[i] - ncgMensal[i - 1]) - monthlyDRE[i].dividendos - totalAmortizacaoMensal[i];
   }
 
   const lucroLiquidoAcumuladoMensal = monthlyDRE.map((_, i) =>
@@ -614,14 +615,14 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     // Ativo real sem as contas residuais (Outros Ativos / Outros Passivos)
     const ativoReal = caixaMensal[i] + contasReceberMensal[i] + estoqueMensal[i] + outrasAtivoCirculante + totalAtivoNaoCirculanteInformado;
     // Passivo + PL real sem a conta residual de Outros Passivos
-    const passivoPLReal = passivoCirculante + totalPassivoNaoCirculanteInformado + patrimonioLiquido;
+    const passivoPLReal = passivoCirculante + totalPassivoNaoCirculanteInformadoMensal[i] + patrimonioLiquido;
 
     const diferenca = ativoReal - passivoPLReal;
     const outrosAtivos = Math.max(0, -diferenca);
     const outrosPassivos = Math.max(0, diferenca);
 
     const ativoNaoCirculante = totalAtivoNaoCirculanteInformado + outrosAtivos;
-    const passivoNaoCirculante = totalPassivoNaoCirculanteInformado + outrosPassivos;
+    const passivoNaoCirculante = totalPassivoNaoCirculanteInformadoMensal[i] + outrosPassivos;
     const totalPassivoPL = passivoCirculante + passivoNaoCirculante + patrimonioLiquido;
     const ativoCirculante = caixaMensal[i] + contasReceberMensal[i] + estoqueMensal[i] + outrasAtivoCirculante;
     const ativoTotal = ativoCirculante + ativoNaoCirculante;
@@ -666,6 +667,7 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     passivoCirculante: passivoCirculanteMensal[i],
     passivoNaoCirculante: passivoNaoCirculanteMensal[i],
     passivoNaoCirculanteContas: passivoNaoCirculanteContasMensais,
+    emprestimoParcelas: emprestimoParcelasMensais,
     outrosPassivos: outrosPassivosMensal[i],
     patrimonioLiquidoInformado: totalPatrimonioLiquidoInformado,
     patrimonioLiquidoContas: patrimonioLiquidoContasMensais,
@@ -1397,11 +1399,13 @@ function renderBalancePremissas(direction = 'none') {
                   ? 'Usando valor digitado manualmente. Zerar o campo para voltar ao cálculo automático.'
                   : resolveAccountDescription(acc.name, group, acc.value, state, dec);
                 const badgeLabel = dynamic && hasManualValue ? 'Manual' : 'Automático';
+                const isEmprestimo = group === 'passivoNaoCirculante' && accountIsEmprestimo(acc.name);
                 return `
         <div class="account-item ${meta.side} ${dynamic ? 'dynamic' : ''} ${dynamic && hasManualValue ? 'manual' : ''}" data-group="${group}" data-index="${index}" title="${dynamic ? dynamicDesc.replace(/"/g, '&quot;') : ''}">
           <div class="account-main">
             <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
             <input type="text" class="account-value ${dynamic ? 'dynamic-input' : ''}" value="${formatAccountingInput(displayValue)}" data-field="value" inputmode="decimal" placeholder="${dynamic ? 'Saldo inicial R$' : 'R$'}" ${dynamic ? 'data-tooltip="Valor base usado no cálculo automático"' : ''} />
+            ${isEmprestimo ? `<input type="number" class="account-parcelas" value="${acc.parcelas || ''}" data-field="parcelas" min="0" placeholder="Parcelas" title="Número de parcelas para amortização mensal" />` : ''}
             <div class="account-actions">
               ${dynamic ? `<span class="dynamic-badge ${hasManualValue ? 'manual' : ''}" title="${dynamicDesc.replace(/"/g, '&quot;')}">${hasManualValue ? '✏️ Manual' : '⚡ Automático'}</span>` : ''}
               ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
@@ -1435,6 +1439,8 @@ function renderBalancePremissas(direction = 'none') {
       const field = e.target.dataset.field;
       if (field === 'value') {
         balanceAccounts[group][index][field] = parseAccountingInput(e.target.value);
+      } else if (field === 'parcelas') {
+        balanceAccounts[group][index][field] = parseInt(e.target.value, 10) || 0;
       } else {
         balanceAccounts[group][index][field] = e.target.value;
       }
