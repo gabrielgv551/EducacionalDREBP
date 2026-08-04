@@ -428,6 +428,11 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const caixaInicial = getResolvedAccountValue(accounts, 'ativoCirculante', 'caixaInicial', s, dec);
   const outrasAtivoCirculante = getOtherResolvedAccountsTotal(accounts, 'ativoCirculante', 'caixaInicial', s, dec, true);
   const totalAtivoNaoCirculanteInformado = sumResolvedAccounts(accounts, 'ativoNaoCirculante', s, dec);
+  const ativoNaoCirculanteContasMensais = {};
+  accounts.ativoNaoCirculante.forEach((a) => {
+    const v = resolveAccountValue(a.name, 'ativoNaoCirculante', a.value, s, dec);
+    ativoNaoCirculanteContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
+  });
   const passivoCirculanteDinamicas = accounts.passivoCirculante.filter((a) => accountIsDynamic(a.name, 'passivoCirculante'));
   const passivoCirculanteNaoDinamicas = accounts.passivoCirculante.filter((a) => !accountIsDynamic(a.name, 'passivoCirculante'));
   const totalPassivoCirculanteNaoDinamico = passivoCirculanteNaoDinamicas.reduce(
@@ -547,6 +552,7 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     outrasAtivoCirculante,
     ativoCirculante: ativoCirculanteMensal[i],
     ativoNaoCirculante: ativoNaoCirculanteMensal[i],
+    ativoNaoCirculanteContas: ativoNaoCirculanteContasMensais,
     outrosAtivos: outrosAtivosMensal[i],
     ativoTotal: ativoTotalMensal[i],
     contasPagar: contasPagarMensal[i],
@@ -1315,18 +1321,25 @@ function renderBalancePremissas(direction = 'none') {
       const index = parseInt(item.dataset.index, 10);
       const field = e.target.dataset.field;
       if (field === 'value') {
-        const numeric = parseAccountingInput(e.target.value);
-        const formatted = formatAccountingInput(numeric);
-        if (e.target.value !== formatted) {
-          maskAccountingInput(e.target);
-        }
-        balanceAccounts[group][index][field] = numeric;
+        balanceAccounts[group][index][field] = parseAccountingInput(e.target.value);
       } else {
         balanceAccounts[group][index][field] = e.target.value;
       }
       document.getElementById('wizardGroupTotal').textContent = formatCurrency(sumAccounts(balanceAccounts[group]));
       updateWizardScoreboard();
       updateAll();
+    });
+
+    input.addEventListener('blur', (e) => {
+      const field = e.target.dataset.field;
+      if (field !== 'value') return;
+      e.target.value = formatAccountingInput(parseAccountingInput(e.target.value));
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.target.blur();
+      }
     });
   });
 
@@ -2059,6 +2072,7 @@ function renderMonthlyBalanco() {
 
   const passivoCirculanteDinamicas = balanceAccounts.passivoCirculante.filter((a) => accountIsDynamic(a.name, 'passivoCirculante'));
   const passivoCirculanteNaoDinamicas = balanceAccounts.passivoCirculante.filter((a) => !accountIsDynamic(a.name, 'passivoCirculante'));
+  const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante;
 
   const rowDefs = [
     { label: 'Ativo Circulante', cls: 'total', key: 'ativoCirculante' },
@@ -2066,6 +2080,7 @@ function renderMonthlyBalanco() {
     { label: 'Contas a Receber', cls: 'sub', key: 'contasReceber' },
     { label: 'Estoque', cls: 'sub', key: 'estoque' },
     { label: 'Ativo Não Circulante', cls: 'total', key: 'ativoNaoCirculante' },
+    ...ativoNaoCirculanteContas.map((a) => ({ label: a.name, cls: 'sub', get: (m) => m.ativoNaoCirculanteContas[a.id] })),
     { label: 'Outros Ativos', cls: 'sub', key: 'outrosAtivos' },
     { label: 'Total Ativo', cls: 'total', key: 'ativoTotal' },
     { label: 'Passivo Circulante', cls: 'total', key: 'passivoCirculante' },
