@@ -2080,14 +2080,14 @@ function renderMonthlyBalanco() {
     { label: 'Contas a Receber', cls: 'sub', key: 'contasReceber' },
     { label: 'Estoque', cls: 'sub', key: 'estoque' },
     { label: 'Ativo Não Circulante', cls: 'total', key: 'ativoNaoCirculante' },
-    ...ativoNaoCirculanteContas.map((a) => ({ label: a.name, cls: 'sub', get: (m) => m.ativoNaoCirculanteContas[a.id] })),
+    ...ativoNaoCirculanteContas.map((a) => ({ label: a.name, cls: 'sub', get: (m, i) => m.ativoNaoCirculanteContas[a.id][i] })),
     { label: 'Outros Ativos', cls: 'sub', key: 'outrosAtivos' },
     { label: 'Total Ativo', cls: 'total', key: 'ativoTotal' },
     { label: 'Passivo Circulante', cls: 'total', key: 'passivoCirculante' },
     ...(passivoCirculanteDinamicas.length > 0
-      ? passivoCirculanteDinamicas.map((a) => ({ label: a.name, cls: 'sub', get: (m) => m.passivoCirculanteContas[a.id] }))
+      ? passivoCirculanteDinamicas.map((a) => ({ label: a.name, cls: 'sub', get: (m, i) => m.passivoCirculanteContas[a.id][i] }))
       : [{ label: 'Contas a Pagar', cls: 'sub', key: 'contasPagar' }]),
-    ...passivoCirculanteNaoDinamicas.map((a) => ({ label: a.name, cls: 'sub', get: (m) => m.passivoCirculanteContas[a.id] })),
+    ...passivoCirculanteNaoDinamicas.map((a) => ({ label: a.name, cls: 'sub', get: (m, i) => m.passivoCirculanteContas[a.id][i] })),
     { label: 'Passivo Não Circulante', cls: 'total', key: 'passivoNaoCirculante' },
     { label: 'Outros Passivos', cls: 'sub', key: 'outrosPassivos' },
     { label: 'Patrimônio Líquido', cls: 'total', key: 'patrimonioLiquido' },
@@ -2098,8 +2098,8 @@ function renderMonthlyBalanco() {
 
   tbody.innerHTML = rowDefs
     .map((r) => {
-      const monthlyValues = monthly.map((m) => {
-        const v = r.get ? r.get(m) : m[r.key];
+      const monthlyValues = monthly.map((m, i) => {
+        const v = r.get ? r.get(m, i) : m[r.key];
         return `<td>${formatCurrency(v)}</td>`;
       }).join('');
       return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
