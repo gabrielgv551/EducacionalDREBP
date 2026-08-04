@@ -2096,6 +2096,7 @@ function renderMonthlyBalanco() {
   const passivoCirculanteNaoDinamicas = balanceAccounts.passivoCirculante.filter((a) => !accountIsDynamic(a.name, 'passivoCirculante'));
   const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante;
   const passivoNaoCirculanteContas = balanceAccounts.passivoNaoCirculante;
+  const patrimonioLiquidoContas = balanceAccounts.patrimonioLiquido;
 
   const rowDefs = [
     { label: 'Ativo Circulante', cls: 'total', key: 'ativoCirculante' },
@@ -2115,7 +2116,7 @@ function renderMonthlyBalanco() {
     ...passivoNaoCirculanteContas.map((a) => ({ label: a.name, cls: 'sub', get: (m, i) => m.passivoNaoCirculanteContas[a.id][i] })),
     { label: 'Outros Passivos', cls: 'sub', key: 'outrosPassivos' },
     { label: 'Patrimônio Líquido', cls: 'total', key: 'patrimonioLiquido' },
-    { label: 'Capital Social / PL Informado', cls: 'sub', key: 'patrimonioLiquidoInformado' },
+    ...patrimonioLiquidoContas.map((a) => ({ label: a.name, cls: 'sub', get: (m, i) => m.patrimonioLiquidoContas[a.id][i] })),
     { label: 'Resultado do Exercício', cls: 'sub', key: 'lucrosAcumulados' },
     { label: 'Total Passivo + PL', cls: 'total', key: 'totalPassivoPL' },
   ];
