@@ -9,6 +9,7 @@ App educacional interativo para ensinar, na prática, como premissas operacionai
    - **Painel de Premissas**: ajuste sliders de receita, custos e prazos.
    - **DRE Gerencial**: veja a cascata de resultado, indicadores e comparativo.
    - **Balanço**: explore Ativo, Passivo e PL; clique nas contas para rastrear a premissa.
+   - **Fluxo de Caixa**: acompanhe a DFC pelo método indireto (Lucro Líquido + Depreciação ± variação das contas do balanço), mês a mês.
    - **Capital de Giro**: analise CCC, NCG, CDG e Saldo de Tesouraria.
    - **Aprender**: consulte o glossário, responda o quiz e tente os desafios.
 3. Use **Salvar cenário** para guardar uma configuração e comparar com ajustes futuros.
@@ -22,7 +23,8 @@ App educacional interativo para ensinar, na prática, como premissas operacionai
 ## Motor de cálculo (resumo)
 
 - **DRE**: Receita Bruta → Deduções → Receita Líquida → CMV → Lucro Bruto → Despesas → EBITDA → Depreciação → EBIT → IR → Lucro Líquido.
-- **Balanço**: Contas a Receber, Estoque e Contas a Pagar são derivadas dos prazos; o Caixa é a conta de fechamento que garante `Ativo = Passivo + PL`.
+- **Balanço**: Contas a Receber, Estoque e Contas a Pagar são derivadas dos prazos; o Caixa evolui pela DFC indireta (Lucro Líquido + Depreciação − Δ capital de giro − dividendos − amortização de empréstimos) e o Imobilizado é líquido da depreciação acumulada.
+- **Fluxo de Caixa (DFC indireto)**: parte do Lucro Líquido, readiciona a Depreciação (despesa não-caixa), ajusta as variações das contas operacionais do balanço e deduz dividendos e amortização de empréstimos; o Saldo Final concilia com o Caixa do Balanço.
 - **Capital de Giro**: CCC = PME + PMR − PMP; NCG = ACO − PCO; Tesouraria = CDG − NCG.
 
 ## Requisitos

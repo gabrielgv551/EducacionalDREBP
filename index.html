@@ -79,13 +79,18 @@
         <span class="step-label">Balanço</span>
       </button>
       <span class="step-arrow" aria-hidden="true">→</span>
-      <button class="nav-btn" data-tab="giro">
+      <button class="nav-btn" data-tab="fluxo-caixa">
         <span class="step-number">5</span>
+        <span class="step-label">Fluxo de Caixa</span>
+      </button>
+      <span class="step-arrow" aria-hidden="true">→</span>
+      <button class="nav-btn" data-tab="giro">
+        <span class="step-number">6</span>
         <span class="step-label">Capital de Giro</span>
       </button>
       <span class="step-arrow" aria-hidden="true">→</span>
       <button class="nav-btn" data-tab="kpis">
-        <span class="step-number">6</span>
+        <span class="step-number">7</span>
         <span class="step-label">KPIs</span>
       </button>
       <span class="step-arrow learn" aria-hidden="true">→</span>
@@ -97,7 +102,7 @@
   </header>
 
   <div class="stepper-hint">
-    <p>Fluxo: <strong>Premissas DRE</strong> alimentam a <strong>DRE</strong> → <strong>Premissas Balanço</strong> + DRE geram o <strong>Balanço</strong> → o Balanço e os prazos geram o <strong>Capital de Giro</strong>.</p>
+    <p>Fluxo: <strong>Premissas DRE</strong> alimentam a <strong>DRE</strong> → <strong>Premissas Balanço</strong> + DRE geram o <strong>Balanço</strong> → a DRE e o Balanço geram o <strong>Fluxo de Caixa</strong> → o Balanço e os prazos geram o <strong>Capital de Giro</strong>.</p>
   </div>
 
   <main class="container">
@@ -349,6 +354,38 @@
       </div>
       <div class="module-nav">
         <button class="btn secondary prev-btn" data-prev="dre"><span>←</span> Voltar</button>
+        <button class="btn primary next-btn" data-next="fluxo-caixa">Próximo <span>→</span></button>
+      </div>
+    </section>
+
+    <!-- Fluxo de Caixa (DFC - Método Indireto) -->
+    <section id="tab-fluxo-caixa" class="tab-panel">
+      <div class="panel-header">
+        <h2>Fluxo de Caixa — Método Indireto</h2>
+        <p class="hint">Parte do Lucro Líquido, readiciona a depreciação (despesa não-caixa) e ajusta as variações das contas do balanço até chegar à variação do caixa.</p>
+      </div>
+      <div class="card flow-diagram center">
+        <div class="flow-step">Lucro Líquido</div><span class="flow-arrow">→</span>
+        <div class="flow-step">(+) Depreciação</div><span class="flow-arrow">→</span>
+        <div class="flow-step">(±) Capital de Giro</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Caixa Operacional</div><span class="flow-arrow">→</span>
+        <div class="flow-step">Variação do Caixa</div>
+      </div>
+      <div class="card monthly-table-card">
+        <h3>Demonstração dos Fluxos de Caixa (valores mensais)</h3>
+        <p class="hint">Sinais: aumento de ativo operacional consome caixa (−); aumento de passivo operacional gera caixa (+).</p>
+        <div class="monthly-table-wrap">
+          <table class="monthly-dre-table" id="monthlyDfcTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card feedback" id="feedbackDfc">
+        <strong>Conciliação:</strong> <span></span>
+      </div>
+      <div class="module-nav">
+        <button class="btn secondary prev-btn" data-prev="balanco"><span>←</span> Voltar</button>
         <button class="btn primary next-btn" data-next="giro">Próximo <span>→</span></button>
       </div>
     </section>
@@ -494,7 +531,7 @@
         <strong>Feedback Capital de Giro:</strong> <span></span>
       </div>
       <div class="module-nav">
-        <button class="btn secondary prev-btn" data-prev="balanco"><span>←</span> Voltar</button>
+        <button class="btn secondary prev-btn" data-prev="fluxo-caixa"><span>←</span> Voltar</button>
         <button class="btn primary next-btn" data-next="kpis">Próximo <span>→</span></button>
       </div>
     </section>

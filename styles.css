@@ -706,6 +706,14 @@ body {
 .monthly-dre-table tbody tr.pct td:not(:first-child) { font-weight: 700; }
 .monthly-dre-table tbody tr.pos td:not(:first-child) { color: var(--success); }
 .monthly-dre-table tbody tr.neg td:not(:first-child) { color: var(--danger); }
+.monthly-dre-table tbody tr.section td {
+  background: #0f2740;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+.monthly-dre-table tbody tr.section td:first-child { background: #0f2740 !important; }
 
 /* KPIs */
 .kpis-table-wrap { overflow-x: auto; margin-top: 16px; }

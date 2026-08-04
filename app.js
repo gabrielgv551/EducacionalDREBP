@@ -187,6 +187,10 @@ function accountIsEmprestimo(name) {
   return accountMatches(name, 'empréstimo', 'emprestimo', 'financiamento');
 }
 
+function accountIsImobilizado(name) {
+  return accountMatches(name, 'imobilizado', 'máquina', 'maquina', 'equipamento', 'veículo', 'veiculo', 'frota', 'móvel', 'movel', 'instalação', 'instalacao');
+}
+
 function accountIsDynamic(name, group) {
   if (group === 'ativoCirculante') {
     return accountMatches(name, 'aplicação', 'aplicacao', 'aplicacoes', 'aplicações', 'título', 'titulo', 'contas a receber', 'receber', 'estoque');
@@ -476,12 +480,26 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
 
   const caixaInicial = getResolvedAccountValue(accounts, 'ativoCirculante', 'caixaInicial', s, dec);
   const outrasAtivoCirculante = getOtherResolvedAccountsTotal(accounts, 'ativoCirculante', 'caixaInicial', s, dec, true);
-  const totalAtivoNaoCirculanteInformado = sumResolvedAccounts(accounts, 'ativoNaoCirculante', s, dec);
   const ativoNaoCirculanteContasMensais = {};
+  const imobilizadoAccounts = accounts.ativoNaoCirculante.filter((a) => accountIsImobilizado(a.name));
+  const totalImobilizado = imobilizadoAccounts.reduce(
+    (acc, a) => acc + resolveAccountValue(a.name, 'ativoNaoCirculante', a.value, s, dec),
+    0
+  );
   accounts.ativoNaoCirculante.forEach((a) => {
     const v = resolveAccountValue(a.name, 'ativoNaoCirculante', a.value, s, dec);
-    ativoNaoCirculanteContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
+    if (accountIsImobilizado(a.name) && totalImobilizado > 0) {
+      // Imobilizado reduz mês a mês pela depreciação acumulada (despesa não-caixa),
+      // rateada proporcionalmente entre as contas de imobilizado
+      const peso = v / totalImobilizado;
+      ativoNaoCirculanteContasMensais[a.id] = monthlyDRE.map((m, i) => Math.max(0, v - m.depreciacao * peso * (i + 1)));
+    } else {
+      ativoNaoCirculanteContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
+    }
   });
+  const totalAtivoNaoCirculanteInformadoMensal = monthlyDRE.map((_, i) =>
+    accounts.ativoNaoCirculante.reduce((acc, a) => acc + ativoNaoCirculanteContasMensais[a.id][i], 0)
+  );
   const passivoCirculanteDinamicas = accounts.passivoCirculante.filter((a) => accountIsDynamic(a.name, 'passivoCirculante'));
   const passivoCirculanteNaoDinamicas = accounts.passivoCirculante.filter((a) => !accountIsDynamic(a.name, 'passivoCirculante'));
   const totalPassivoCirculanteNaoDinamico = passivoCirculanteNaoDinamicas.reduce(
@@ -582,10 +600,14 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     passivoCirculanteContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
   });
 
+  // NCG de abertura: saldos manuais informados nas premissas do balanço (zero no cenário padrão)
+  const ncgAbertura = manualContasReceber + manualEstoque - manualContasPagar;
   const caixaMensal = new Array(monthlyDRE.length).fill(0);
-  caixaMensal[0] = caixaInicial - monthlyDRE[0].dividendos - totalAmortizacaoMensal[0];
+  // DFC indireto implícito: Lucro Líquido + Depreciação (não-caixa) − ΔNCG − Dividendos − Amortização de empréstimos
+  caixaMensal[0] =
+    caixaInicial + monthlyDRE[0].lucroLiquido + monthlyDRE[0].depreciacao - (ncgMensal[0] - ncgAbertura) - monthlyDRE[0].dividendos - totalAmortizacaoMensal[0];
   for (let i = 1; i < monthlyDRE.length; i++) {
-    caixaMensal[i] = caixaMensal[i - 1] + monthlyDRE[i].lucroLiquido - (ncgMensal[i] - ncgMensal[i - 1]) - monthlyDRE[i].dividendos - totalAmortizacaoMensal[i];
+    caixaMensal[i] = caixaMensal[i - 1] + monthlyDRE[i].lucroLiquido + monthlyDRE[i].depreciacao - (ncgMensal[i] - ncgMensal[i - 1]) - monthlyDRE[i].dividendos - totalAmortizacaoMensal[i];
   }
 
   const lucroLiquidoAcumuladoMensal = monthlyDRE.map((_, i) =>
@@ -613,7 +635,7 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     const patrimonioLiquido = totalPatrimonioLiquidoInformado + lucrosAcumulados;
 
     // Ativo real sem as contas residuais (Outros Ativos / Outros Passivos)
-    const ativoReal = caixaMensal[i] + contasReceberMensal[i] + estoqueMensal[i] + outrasAtivoCirculante + totalAtivoNaoCirculanteInformado;
+    const ativoReal = caixaMensal[i] + contasReceberMensal[i] + estoqueMensal[i] + outrasAtivoCirculante + totalAtivoNaoCirculanteInformadoMensal[i];
     // Passivo + PL real sem a conta residual de Outros Passivos
     const passivoPLReal = passivoCirculante + totalPassivoNaoCirculanteInformadoMensal[i] + patrimonioLiquido;
 
@@ -621,7 +643,7 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     const outrosAtivos = Math.max(0, -diferenca);
     const outrosPassivos = Math.max(0, diferenca);
 
-    const ativoNaoCirculante = totalAtivoNaoCirculanteInformado + outrosAtivos;
+    const ativoNaoCirculante = totalAtivoNaoCirculanteInformadoMensal[i] + outrosAtivos;
     const passivoNaoCirculante = totalPassivoNaoCirculanteInformadoMensal[i] + outrosPassivos;
     const totalPassivoPL = passivoCirculante + passivoNaoCirculante + patrimonioLiquido;
     const ativoCirculante = caixaMensal[i] + contasReceberMensal[i] + estoqueMensal[i] + outrasAtivoCirculante;
@@ -653,6 +675,14 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   return monthlyDRE.map((m, i) => ({
     month: m.month,
     caixa: caixaMensal[i],
+    caixaInicial,
+    depreciacao: m.depreciacao,
+    amortizacaoEmprestimos: totalAmortizacaoMensal[i],
+    aberturaOperacional: {
+      contasReceber: manualContasReceber,
+      estoque: manualEstoque,
+      contasPagar: manualContasPagar,
+    },
     contasReceber: contasReceberMensal[i],
     estoque: estoqueMensal[i],
     outrasAtivoCirculante,
@@ -681,6 +711,61 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     cdg: cdgMensal[i],
     tesouraria: tesourariaMensal[i],
   }));
+}
+
+// DFC pelo método indireto: parte do Lucro Líquido, readiciona a depreciação
+// (despesa não-caixa) e ajusta as variações das contas operacionais do balanço.
+// Sinais: aumento de ativo operacional consome caixa (−); aumento de passivo operacional gera caixa (+).
+function calculateDFCMonthly(s = state) {
+  const monthlyDRE = calculateDREMonthly(s);
+  const balanco = calculateBalancoMonthly(s);
+
+  return balanco.map((b, i) => {
+    const prev = i > 0 ? balanco[i - 1] : null;
+    const abertura = b.aberturaOperacional;
+
+    const ajusteContasReceber = -(b.contasReceber - (prev ? prev.contasReceber : abertura.contasReceber));
+    const ajusteEstoque = -(b.estoque - (prev ? prev.estoque : abertura.estoque));
+    const ajusteOutrosAC = 0; // demais contas do ativo circulante são estáticas no modelo
+    const ajusteFornecedores = b.contasPagar - (prev ? prev.contasPagar : abertura.contasPagar);
+    const ajusteOutrasObrigacoes = 0; // outras obrigações são estáticas no modelo
+
+    const lucroLiquido = monthlyDRE[i].lucroLiquido;
+    const depreciacao = b.depreciacao;
+    const fco = lucroLiquido + depreciacao + ajusteContasReceber + ajusteEstoque + ajusteOutrosAC + ajusteFornecedores + ajusteOutrasObrigacoes;
+
+    const aquisicaoImobilizado = 0; // o modelo não prevê capex; o imobilizado só reduz pela depreciação (ajustada na FCO)
+    const fci = -aquisicaoImobilizado;
+
+    const pagamentoDividendos = -monthlyDRE[i].dividendos;
+    const pagamentoEmprestimos = -b.amortizacaoEmprestimos;
+    const fcf = pagamentoDividendos + pagamentoEmprestimos;
+
+    const variacaoCaixa = fco + fci + fcf;
+    const saldoInicial = prev ? prev.caixa : b.caixaInicial;
+    const saldoFinal = saldoInicial + variacaoCaixa;
+
+    return {
+      month: b.month,
+      lucroLiquido,
+      depreciacao,
+      ajusteContasReceber,
+      ajusteEstoque,
+      ajusteOutrosAC,
+      ajusteFornecedores,
+      ajusteOutrasObrigacoes,
+      fco,
+      aquisicaoImobilizado,
+      fci,
+      pagamentoDividendos,
+      pagamentoEmprestimos,
+      fcf,
+      variacaoCaixa,
+      saldoInicial,
+      saldoFinal,
+      concilia: Math.abs(saldoFinal - b.caixa) < 0.01,
+    };
+  });
 }
 
 function calculateGiro(balanco, s = state) {
@@ -1217,14 +1302,21 @@ function updateBalanco() {
   const ativoCirculanteContas = balanceAccounts.ativoCirculante
     .filter((acc) => acc.id !== 'caixaInicial' && !accountIsDynamic(acc.name, 'ativoCirculante'))
     .map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'ativoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'ativoCirculante', acc.value, state, dec)]);
-  const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'ativoNaoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'ativoNaoCirculante', acc.value, state, dec)]);
+  const ativoNaoCirculanteContas = balanceAccounts.ativoNaoCirculante.map((acc) => [
+    acc.name,
+    b.ativoNaoCirculanteContas[acc.id][11],
+    acc.id,
+    accountIsImobilizado(acc.name)
+      ? `Valor informado menos depreciação acumulada até dezembro = ${formatCurrency(parseFloat(acc.value) || 0)} − ${formatCurrency(state.depreciacao)}`
+      : resolveAccountDescription(acc.name, 'ativoNaoCirculante', acc.value, state, dec),
+  ]);
   const passivoCirculanteDinamicas = balanceAccounts.passivoCirculante.filter((acc) => accountIsDynamic(acc.name, 'passivoCirculante'));
   const passivoCirculanteNaoDinamicas = balanceAccounts.passivoCirculante.filter((acc) => !accountIsDynamic(acc.name, 'passivoCirculante'));
   const passivoNaoCirculanteContas = balanceAccounts.passivoNaoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoNaoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoNaoCirculante', acc.value, state, dec)]);
   const patrimonioLiquidoContas = balanceAccounts.patrimonioLiquido.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'patrimonioLiquido', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'patrimonioLiquido', acc.value, state, dec)]);
 
   const ativoItems = [
-    ['Caixa', b.caixa, 'caixa', 'Saldo de caixa de fechamento de dezembro. Calculado como resíduo para garantir Ativo = Passivo + PL.'],
+    ['Caixa', b.caixa, 'caixa', 'Saldo de caixa de fechamento de dezembro. Evolui pela DFC indireta: Lucro Líquido + Depreciação − variação do capital de giro − dividendos − amortização de empréstimos.'],
     ['Contas a Receber', b.contasReceber, 'receber', `Receita Líquida de dezembro × PMR ÷ 30 = ${formatCurrency(dec.receitaLiquida)} × ${state.pmr} ÷ 30`],
     ['Estoque', b.estoque, 'estoque', `CMV de dezembro × PME ÷ 30 = ${formatCurrency(dec.cmv)} × ${state.pme} ÷ 30`],
     ...ativoCirculanteContas,
@@ -1782,6 +1874,7 @@ function updateAllFeedbacks() {
 function updateAll() {
   updateDRE();
   updateBalanco();
+  updateFluxoCaixa();
   updateGiro();
   updateAllFeedbacks();
 
@@ -2226,6 +2319,66 @@ function renderMonthlyBalanco() {
         const v = r.get ? r.get(m, i) : m[r.key];
         return `<td>${formatCurrency(v)}</td>`;
       }).join('');
+      return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
+    })
+    .join('');
+}
+
+function updateFluxoCaixa() {
+  renderMonthlyDfc();
+
+  const dfc = calculateDFCMonthly();
+  const el = document.querySelector('#feedbackDfc');
+  if (!el) return;
+  const span = el.querySelector('span');
+  const divergentes = dfc.filter((m) => !m.concilia).map((m) => m.month);
+  if (divergentes.length === 0) {
+    span.textContent = 'A DFC concilia com o Caixa do Balanço em todos os meses: Saldo Inicial + Variação = Saldo Final.';
+    el.className = 'card feedback';
+  } else {
+    span.textContent = `Atenção: a DFC não concilia com o Caixa do Balanço em: ${divergentes.join(', ')}.`;
+    el.className = 'card feedback warning';
+  }
+}
+
+function renderMonthlyDfc() {
+  const dfc = calculateDFCMonthly();
+  const head = document.querySelector('#monthlyDfcTable thead');
+  const tbody = document.querySelector('#monthlyDfcTable tbody');
+  if (!head || !tbody) return;
+
+  head.innerHTML = `<tr><th>Conta / Descrição</th>${dfc.map((m) => `<th>${m.month}</th>`).join('')}</tr>`;
+
+  const rowDefs = [
+    { label: 'ATIVIDADES OPERACIONAIS', cls: 'section', get: () => null },
+    { label: 'Resultado Líquido do Exercício', cls: 'sub', key: 'lucroLiquido' },
+    { label: '(+) Depreciação e Amortização', cls: 'sub', key: 'depreciacao' },
+    { label: '(∓) Contas a Receber', cls: 'sub', key: 'ajusteContasReceber' },
+    { label: '(∓) Estoque', cls: 'sub', key: 'ajusteEstoque' },
+    { label: '(∓) Outros Ativos Circulantes', cls: 'sub', key: 'ajusteOutrosAC' },
+    { label: '(±) Fornecedores', cls: 'sub', key: 'ajusteFornecedores' },
+    { label: '(±) Outras Obrigações', cls: 'sub', key: 'ajusteOutrasObrigacoes' },
+    { label: 'Total Caixa Gerado (Aplicado) Operacional', cls: 'total', key: 'fco' },
+    { label: 'ATIVIDADES DE INVESTIMENTO', cls: 'section', get: () => null },
+    { label: '(−) Aquisição de Imobilizado', cls: 'sub', key: 'aquisicaoImobilizado' },
+    { label: 'Total Caixa Gerado (Aplicado) em Investimentos', cls: 'total', key: 'fci' },
+    { label: 'ATIVIDADES DE FINANCIAMENTO', cls: 'section', get: () => null },
+    { label: '(−) Dividendos Pagos', cls: 'sub', key: 'pagamentoDividendos' },
+    { label: '(−) Amortização de Empréstimos', cls: 'sub', key: 'pagamentoEmprestimos' },
+    { label: 'Total Caixa Gerado (Aplicado) em Financiamento', cls: 'total', key: 'fcf' },
+    { label: 'Variação Líquida do Caixa', cls: 'total', key: 'variacaoCaixa' },
+    { label: 'Saldo Inicial de Caixa', cls: 'sub', key: 'saldoInicial' },
+    { label: 'Saldo Final de Caixa', cls: 'total', key: 'saldoFinal' },
+  ];
+
+  tbody.innerHTML = rowDefs
+    .map((r) => {
+      const monthlyValues = dfc
+        .map((m, i) => {
+          const v = r.get ? r.get(m, i) : m[r.key];
+          return `<td>${v === null ? '' : formatCurrency(v)}</td>`;
+        })
+        .join('');
       return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
     })
     .join('');
