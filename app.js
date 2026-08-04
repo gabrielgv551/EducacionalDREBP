@@ -604,6 +604,11 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     lucrosAcumuladosIniciais: 0,
     patrimonioLiquido: patrimonioLiquidoMensal[i],
     totalPassivoPL: totalPassivoPLMensal[i],
+    aco,
+    pco,
+    ncg,
+    cdg,
+    tesouraria,
   }));
 }
 
@@ -1596,6 +1601,8 @@ function updateGiro() {
     })
     .join('');
 
+  renderMonthlyGiro();
+
   // Memória de cálculo
   document.getElementById('memoCCC').innerHTML = `
     <span>${state.pme} + ${state.pmr} − ${state.pmp} = <strong>${g.ccc} dias</strong></span>
@@ -2144,6 +2151,35 @@ function renderMonthlyBalanco() {
         const v = r.get ? r.get(m, i) : m[r.key];
         return `<td>${formatCurrency(v)}</td>`;
       }).join('');
+      return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
+    })
+    .join('');
+}
+
+function renderMonthlyGiro() {
+  const monthly = calculateBalancoMonthly();
+  const head = document.querySelector('#monthlyGiroTable thead');
+  const tbody = document.querySelector('#monthlyGiroTable tbody');
+  if (!head || !tbody) return;
+
+  head.innerHTML = `<tr><th>Descrição</th>${monthly.map((m) => `<th>${m.month}</th>`).join('')}</tr>`;
+
+  const rowDefs = [
+    { label: 'Contas a Receber', cls: 'sub', key: 'contasReceber' },
+    { label: 'Estoque', cls: 'sub', key: 'estoque' },
+    { label: 'ACO', cls: 'total', key: 'aco' },
+    { label: 'Contas a Pagar', cls: 'sub', key: 'contasPagar' },
+    { label: 'PCO', cls: 'total', key: 'pco' },
+    { label: 'NCG', cls: 'neg', key: 'ncg' },
+    { label: 'Caixa', cls: 'sub', key: 'caixa' },
+    { label: 'Outras Obrigações', cls: 'sub', key: 'outrasObrigacoes' },
+    { label: 'CDG', cls: 'pos', key: 'cdg' },
+    { label: 'Tesouraria', cls: 'pos', key: 'tesouraria' },
+  ];
+
+  tbody.innerHTML = rowDefs
+    .map((r) => {
+      const monthlyValues = monthly.map((m) => `<td>${formatCurrency(m[r.key])}</td>`).join('');
       return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
     })
     .join('');
