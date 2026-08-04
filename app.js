@@ -1405,7 +1405,7 @@ function updateGiro() {
     <span class="timeline-arrow">→</span>
     <div class="timeline-phase pmp">− PMP<br>${state.pmp}d</div>
     <span class="timeline-arrow">=</span>
-    <div class="timeline-phase" style="background:#1e293b;color:var(--accent)">CCC<br>${g.ccc}d</div>
+    <div class="timeline-phase" style="background:#f8fafc;color:var(--accent);border:1px solid var(--border)">CCC<br>${g.ccc}d</div>
   `;
 
   const monthly = projectCash();
