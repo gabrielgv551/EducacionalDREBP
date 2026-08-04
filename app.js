@@ -405,7 +405,6 @@ function buildDefaultBalanceAccounts() {
     passivoCirculante: [
       { id: 'fornecedores', name: 'Fornecedores', value: 0, type: 'fixed' },
       { id: 'contasPagar', name: 'Contas a Pagar', value: 0, type: 'fixed' },
-      { id: 'outrasObrigacoes', name: 'Outras Obrigações', value: 250_000, type: 'fixed' },
     ],
     passivoNaoCirculante: [
       { id: 'emprestimos', name: 'Empréstimos', value: 1_000_000, type: 'fixed' },
