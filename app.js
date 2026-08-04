@@ -486,15 +486,22 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   );
 
   // Prepara vetores mensais para contas dinâmicas operacionais
-  const contasReceberMensal = monthlyDRE.map((m, i) =>
-    i === 0 && manualContasReceber > 0 ? manualContasReceber : m.receitaLiquida * (s.pmr / daysInMonth)
-  );
-  const estoqueMensal = monthlyDRE.map((m, i) =>
-    i === 0 && manualEstoque > 0 ? manualEstoque : m.cmv * (s.pme / daysInMonth)
-  );
-  const contasPagarMensal = monthlyDRE.map((m, i) =>
-    i === 0 && manualContasPagar > 0 ? manualContasPagar : m.cmv * (s.pmp / daysInMonth)
-  );
+  // Se houver saldo inicial manual, mantém a proporção ao longo do ano (reflexo do saldo inicial)
+  const contasReceberAutoBase = monthlyDRE[0].receitaLiquida * (s.pmr / daysInMonth);
+  const contasReceberMensal = monthlyDRE.map((m) => {
+    const auto = m.receitaLiquida * (s.pmr / daysInMonth);
+    return manualContasReceber > 0 ? manualContasReceber * (auto / contasReceberAutoBase) : auto;
+  });
+  const estoqueAutoBase = monthlyDRE[0].cmv * (s.pme / daysInMonth);
+  const estoqueMensal = monthlyDRE.map((m) => {
+    const auto = m.cmv * (s.pme / daysInMonth);
+    return manualEstoque > 0 ? manualEstoque * (auto / estoqueAutoBase) : auto;
+  });
+  const contasPagarAutoBase = monthlyDRE[0].cmv * (s.pmp / daysInMonth);
+  const contasPagarMensal = monthlyDRE.map((m) => {
+    const auto = m.cmv * (s.pmp / daysInMonth);
+    return manualContasPagar > 0 ? manualContasPagar * (auto / contasPagarAutoBase) : auto;
+  });
   const ncgMensal = contasReceberMensal.map((cr, i) => cr + estoqueMensal[i] - contasPagarMensal[i]);
 
   // Distribui o valor dinâmico do passivo circulante entre as contas dinâmicas proporcionalmente aos valores informados
