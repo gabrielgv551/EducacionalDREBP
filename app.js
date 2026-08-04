@@ -348,6 +348,9 @@ function calculateDRE(s = state) {
     receitaLiquida: sum('receitaLiquida'),
     cmv: sum('cmv'),
     lucroBruto: sum('lucroBruto'),
+    despesasVariaveis: sum('despesasVariaveis'),
+    margemContribuicao: sum('margemContribuicao'),
+    despesasFixas: sum('despesasFixas'),
     despesasOperacionais: sum('despesasOperacionais'),
     ebitda: sum('ebitda'),
     depreciacao: sum('depreciacao'),
@@ -372,8 +375,10 @@ function calculateDREMonthly(s = state) {
     const cmv = receitaLiquida * (s.cmvPercent / 100);
     const lucroBruto = receitaLiquida - cmv;
     const despesasVariaveis = receitaLiquida * (s.despesasVariaveis / 100);
-    const despesasOperacionais = baseDespesasFixas + despesasVariaveis;
-    const ebitda = lucroBruto - despesasOperacionais;
+    const despesasFixas = baseDespesasFixas;
+    const despesasOperacionais = despesasFixas + despesasVariaveis;
+    const margemContribuicao = lucroBruto - despesasVariaveis;
+    const ebitda = margemContribuicao - despesasFixas;
     const ebit = ebitda - baseDepreciacao;
     const despesasEmprestimos = baseDespesasEmprestimos;
     const laIR = ebit - despesasEmprestimos;
@@ -385,6 +390,9 @@ function calculateDREMonthly(s = state) {
       receitaLiquida,
       cmv,
       lucroBruto,
+      despesasVariaveis,
+      margemContribuicao,
+      despesasFixas,
       despesasOperacionais,
       ebitda,
       depreciacao: baseDepreciacao,
@@ -970,11 +978,13 @@ function renderDreTable(tableId, indicatorsId, dre, divisor) {
     ['Receita Líquida', dre.receitaLiquida / divisor, 'total', 'Valor efetivo gerado por vendas.', 'Receita Líquida'],
     ['(−) CMV', -dre.cmv / divisor, 'neg', 'Custo da mercadoria vendida ou custo dos serviços prestados.', 'CMV'],
     ['Lucro Bruto', dre.lucroBruto / divisor, 'sub', 'Receita líquida menos custos.', 'Lucro Bruto'],
-    ['(−) Despesas Operacionais', -dre.despesasOperacionais / divisor, 'neg', 'Despesas fixas e variáveis do dia a dia.', ''],
+    ['(−) Despesas Variáveis', -dre.despesasVariaveis / divisor, 'neg', 'Despesas que variam com a receita.', ''],
+    ['Margem de Contribuição', dre.margemContribuicao / divisor, 'sub', 'Lucro bruto menos despesas variáveis.', ''],
+    ['(−) Despesas Operacionais Fixas', -dre.despesasFixas / divisor, 'neg', 'Despesas fixas do dia a dia.', ''],
     ['EBITDA', dre.ebitda / divisor, 'sub', 'Resultado operacional antes de depreciação e impostos.', 'EBITDA'],
     ['(−) Depreciação', -dre.depreciacao / divisor, 'neg', 'Custo do desgaste de ativos imobilizados.', ''],
     ['EBIT', dre.ebit / divisor, 'sub', 'Lucro operacional antes de juros e impostos.', 'EBIT'],
-    ['(−) Despesas com Empréstimos', -dre.despesasEmprestimos / divisor, 'neg', 'Juros e encargos financeiros com empréstimos.', 'Despesas com Empréstimos'],
+    ['(−) Despesas com Juros', -dre.despesasEmprestimos / divisor, 'neg', 'Juros e encargos financeiros.', ''],
     ['LAIR', dre.laIR / divisor, 'sub', 'Lucro antes do Imposto de Renda.', 'LAIR'],
     ['(−) IR/CSLL', -dre.ir / divisor, 'neg', 'Tributos sobre o lucro.', ''],
     ['Lucro Líquido', dre.lucroLiquido / divisor, 'total', 'Resultado final disponível para os acionistas.', 'Lucro Líquido'],
@@ -991,11 +1001,13 @@ function renderDreTable(tableId, indicatorsId, dre, divisor) {
     .join('');
 
   const margemBruta = (dre.lucroBruto / dre.receitaLiquida) * 100;
+  const margemContribuicao = (dre.margemContribuicao / dre.receitaLiquida) * 100;
   const margemEbitda = (dre.ebitda / dre.receitaLiquida) * 100;
   const margemLiquida = (dre.lucroLiquido / dre.receitaLiquida) * 100;
 
   document.getElementById(indicatorsId).innerHTML = `
     <div class="indicator"><span class="label">Margem Bruta</span><span class="value">${margemBruta.toFixed(1).replace('.', ',')}%</span></div>
+    <div class="indicator"><span class="label">Margem de Contribuição</span><span class="value">${margemContribuicao.toFixed(1).replace('.', ',')}%</span></div>
     <div class="indicator"><span class="label">Margem EBITDA</span><span class="value">${margemEbitda.toFixed(1).replace('.', ',')}%</span></div>
     <div class="indicator"><span class="label">Margem Líquida</span><span class="value">${margemLiquida.toFixed(1).replace('.', ',')}%</span></div>
   `;
@@ -1015,9 +1027,10 @@ function renderWaterfall(dre) {
   const items = [
     ['Receita Líquida', dre.receitaLiquida / divisor, 'pos'],
     ['CMV', -dre.cmv / divisor, 'neg'],
-    ['Desp. Op.', -dre.despesasOperacionais / divisor, 'neg'],
+    ['Desp. Var.', -dre.despesasVariaveis / divisor, 'neg'],
+    ['Desp. Fixas', -dre.despesasFixas / divisor, 'neg'],
     ['Deprec.', -dre.depreciacao / divisor, 'neg'],
-    ['Emprést.', -dre.despesasEmprestimos / divisor, 'neg'],
+    ['Juros', -dre.despesasEmprestimos / divisor, 'neg'],
     ['LAIR', dre.laIR / divisor, 'sub'],
     ['IR/CSLL', -dre.ir / divisor, 'neg'],
     ['Lucro Líquido', dre.lucroLiquido / divisor, 'total'],
@@ -2094,13 +2107,16 @@ function renderMonthlyTable() {
     { key: 'cmv', label: '(−) CMV', cls: 'neg', get: (m) => m.cmv },
     { key: 'pctLucroBruto', label: 'Margem Bruta', cls: 'pct', get: (m) => m.lucroBruto / m.receitaLiquida, format: 'percent' },
     { key: 'lucroBruto', label: 'Lucro Bruto', cls: 'sub' },
-    { key: 'despesasOperacionais', label: '(−) Despesas Operacionais', cls: 'neg', get: (m) => m.despesasOperacionais },
+    { key: 'despesasVariaveis', label: '(−) Despesas Variáveis', cls: 'neg', get: (m) => m.despesasVariaveis },
+    { key: 'pctMargemContribuicao', label: 'Margem de Contribuição %', cls: 'pct', get: (m) => m.margemContribuicao / m.receitaLiquida, format: 'percent' },
+    { key: 'margemContribuicao', label: 'Margem de Contribuição', cls: 'sub', get: (m) => m.margemContribuicao },
+    { key: 'despesasFixas', label: '(−) Despesas Operacionais Fixas', cls: 'neg', get: (m) => m.despesasFixas },
     { key: 'pctEbitda', label: 'Margem EBITDA', cls: 'pct', get: (m) => m.ebitda / m.receitaLiquida, format: 'percent' },
     { key: 'ebitda', label: 'EBITDA', cls: 'sub' },
     { key: 'depreciacao', label: '(−) Depreciação', cls: 'neg', get: (m) => m.depreciacao },
     { key: 'pctEbit', label: 'Margem EBIT', cls: 'pct', get: (m) => m.ebit / m.receitaLiquida, format: 'percent' },
     { key: 'ebit', label: 'EBIT', cls: 'sub' },
-    { key: 'despesasEmprestimos', label: '(−) Despesas com Empréstimos', cls: 'neg', get: (m) => m.despesasEmprestimos },
+    { key: 'despesasEmprestimos', label: '(−) Despesas com Juros', cls: 'neg', get: (m) => m.despesasEmprestimos },
     { key: 'pctLair', label: 'Margem LAIR', cls: 'pct', get: (m) => m.laIR / m.receitaLiquida, format: 'percent' },
     { key: 'laIR', label: 'LAIR', cls: 'sub' },
     { key: 'ir', label: '(−) IR/CSLL', cls: 'neg', get: (m) => m.ir },
