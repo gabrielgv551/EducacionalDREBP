@@ -107,7 +107,7 @@ const accountSuggestions = {
   ativoNaoCirculante: ['Intangível', 'Investimentos', 'Terrenos', 'Máquinas e Equipamentos', 'Veículos'],
   passivoCirculante: ['Fornecedores', 'Salários a Pagar', 'Impostos a Pagar', 'Empréstimos de Curto Prazo', 'Contas a Pagar', 'Provisão para 13º e Férias'],
   passivoNaoCirculante: ['Financiamentos', 'Provisão para Contingências', 'Debêntures', 'Impostos Diferidos'],
-  patrimonioLiquido: ['Reservas de Capital', 'Lucros a Realizar', 'Reservas de Lucros', 'Prejuízos Acumulados'],
+  patrimonioLiquido: ['Reservas de Capital', 'Lucros a Realizar', 'Reservas de Lucros', 'Lucros ou prejuízos acumulados'],
 };
 
 let state = { ...defaultState };
