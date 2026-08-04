@@ -1241,6 +1241,22 @@ body {
 .account-item input[type="text"].account-value:focus { border-color: var(--accent); outline: none; background: rgba(2,132,199,0.08); box-shadow: 0 0 0 3px rgba(2,132,199,0.15); }
 .account-item input[type="text"].account-value:hover { border-color: #cbd5e1; }
 
+.account-item input[type="number"].account-parcelas {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  width: 90px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  transition: .2s;
+}
+.account-item input[type="number"].account-parcelas:focus { border-color: var(--accent); outline: none; background: rgba(2,132,199,0.08); box-shadow: 0 0 0 3px rgba(2,132,199,0.15); }
+.account-item input[type="number"].account-parcelas:hover { border-color: #cbd5e1; }
+
 .account-actions { display: flex; gap: 8px; }
 .btn-remove-account {
   background: transparent;
