@@ -1510,30 +1510,29 @@ function renderBalancePremissas(direction = 'none') {
       <p class="wizard-premissa-hint">Valor mensal pago aos sócios. Alimenta a conta <strong>Dividendos a Distribuir</strong> no Patrimônio Líquido e reduz o caixa.</p>
     </div>` : ''}
     <div class="account-list" data-group="${group}">
-      ${accounts.length === 0
+      ${accounts.filter((acc) => acc.id !== 'dividendosDistribuir').length === 0
         ? `<div class="empty-account-hint">Nenhuma conta nesta fase. Adicione uma conta para começar! 🚀</div>`
         : accounts
+            .filter((acc) => acc.id !== 'dividendosDistribuir')
             .map(
               (acc, index) => {
                 const resolved = resolveAccountValue(acc.name, group, acc.value, state, dec);
                 const dynamic = accountIsDynamic(acc.name, group);
                 const hasManualValue = parseFloat(acc.value || 0) !== 0;
                 const displayValue = dynamic && !hasManualValue ? resolved : acc.value;
-                const isAutoDividendos = acc.id === 'dividendosDistribuir';
                 const dynamicDesc = dynamic && hasManualValue
                   ? 'Usando valor digitado manualmente. Zerar o campo para voltar ao cálculo automático.'
                   : resolveAccountDescription(acc.name, group, acc.value, state, dec);
-                const autoDividendosDesc = 'Valor calculado automaticamente a partir dos Dividendos mensais informados nesta fase.';
                 const badgeLabel = dynamic && hasManualValue ? 'Manual' : 'Automático';
                 const isEmprestimo = group === 'passivoNaoCirculante' && accountIsEmprestimo(acc.name);
                 return `
-        <div class="account-item ${meta.side} ${dynamic ? 'dynamic' : ''} ${dynamic && hasManualValue ? 'manual' : ''} ${isAutoDividendos ? 'auto-dividendos' : ''}" data-group="${group}" data-index="${index}" title="${(dynamic || isAutoDividendos) ? (isAutoDividendos ? autoDividendosDesc : dynamicDesc).replace(/"/g, '&quot;') : ''}">
+        <div class="account-item ${meta.side} ${dynamic ? 'dynamic' : ''} ${dynamic && hasManualValue ? 'manual' : ''}" data-group="${group}" data-index="${index}" title="${dynamic ? dynamicDesc.replace(/"/g, '&quot;') : ''}">
           <div class="account-main">
-            <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" ${isAutoDividendos ? 'readonly' : ''} />
-            <input type="text" class="account-value ${dynamic ? 'dynamic-input' : ''}" value="${formatAccountingInput(displayValue)}" data-field="value" inputmode="decimal" placeholder="${dynamic ? 'Saldo inicial R$' : 'R$'}" ${dynamic ? 'data-tooltip="Valor base usado no cálculo automático"' : ''} ${isAutoDividendos ? 'readonly' : ''} />
+            <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
+            <input type="text" class="account-value ${dynamic ? 'dynamic-input' : ''}" value="${formatAccountingInput(displayValue)}" data-field="value" inputmode="decimal" placeholder="${dynamic ? 'Saldo inicial R$' : 'R$'}" ${dynamic ? 'data-tooltip="Valor base usado no cálculo automático"' : ''} />
             ${isEmprestimo ? `<input type="number" class="account-parcelas" value="${acc.parcelas || ''}" data-field="parcelas" min="0" placeholder="Parcelas" title="Número de parcelas para amortização mensal" />` : ''}
             <div class="account-actions">
-              ${dynamic || isAutoDividendos ? `<span class="dynamic-badge ${hasManualValue && !isAutoDividendos ? 'manual' : ''}" title="${(isAutoDividendos ? autoDividendosDesc : dynamicDesc).replace(/"/g, '&quot;')}">${isAutoDividendos || !hasManualValue ? '⚡ Automático' : '✏️ Manual'}</span>` : ''}
+              ${dynamic ? `<span class="dynamic-badge ${hasManualValue ? 'manual' : ''}" title="${dynamicDesc.replace(/"/g, '&quot;')}">${hasManualValue ? '✏️ Manual' : '⚡ Automático'}</span>` : ''}
               ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
             </div>
           </div>
