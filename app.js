@@ -244,7 +244,6 @@ const inputDefs = [
   ['despesasFixas', 'valDespesasFixas', 'currency', 0, 8000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasFixas) : formatCurrency(state.despesasFixas)],
   ['despesasVariaveis', 'valDespesasVariaveis', 'percent', 0, 40, () => formatPercentView(state.despesasVariaveis)],
   ['despesasEmprestimos', 'valDespesasEmprestimos', 'currency', 0, 2000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.despesasEmprestimos) : formatCurrency(state.despesasEmprestimos)],
-  ['dividendosMensais', 'valDividendosMensais', 'currency', 0, 2000000, () => viewMode === 'monthly' ? formatCurrencyMonthly(state.dividendosMensais) : formatCurrency(state.dividendosMensais)],
   ['pmr', 'valPmr', 'days', 0, 180, (v) => `${v} dias`],
   ['pme', 'valPme', 'days', 0, 180, (v) => `${v} dias`],
   ['pmp', 'valPmp', 'days', 0, 180, (v) => `${v} dias`],
@@ -1335,7 +1334,7 @@ function updateBalanco() {
       ? b.patrimonioLiquidoContas[acc.id][11]
       : getResolvedAccountValue(balanceAccounts, 'patrimonioLiquido', acc.id, state, dec);
     const desc = isDividendos
-      ? 'Total acumulado de dividendos pagos no exercício. Reduz o Patrimônio Líquido e o caixa mensalmente.'
+      ? 'Total acumulado de dividendos pagos no exercício. Reduz o Patrimônio Líquido e o caixa mensalmente (valor informado na fase de Patrimônio Líquido).'
       : resolveAccountDescription(acc.name, 'patrimonioLiquido', acc.value, state, dec);
     return [acc.name, value, acc.id, desc];
   });
@@ -1502,6 +1501,14 @@ function renderBalancePremissas(direction = 'none') {
       <span class="label">Total do grupo</span>
       <span class="value" id="wizardGroupTotal" style="color:${meta.color}">${formatCurrency(total)}</span>
     </div>
+    ${group === 'patrimonioLiquido' ? `
+    <div class="wizard-premissa-extra">
+      <div class="input-group">
+        <label for="wizardDividendosMensais">Dividendos mensais (R$)</label>
+        <input type="text" id="wizardDividendosMensais" class="input-currency" inputmode="decimal" value="${formatAccountingInput(state.dividendosMensais)}" placeholder="0" />
+      </div>
+      <p class="wizard-premissa-hint">Valor mensal pago aos sócios. Alimenta a conta <strong>Dividendos a Distribuir</strong> no Patrimônio Líquido e reduz o caixa.</p>
+    </div>` : ''}
     <div class="account-list" data-group="${group}">
       ${accounts.length === 0
         ? `<div class="empty-account-hint">Nenhuma conta nesta fase. Adicione uma conta para começar! 🚀</div>`
@@ -1516,7 +1523,7 @@ function renderBalancePremissas(direction = 'none') {
                 const dynamicDesc = dynamic && hasManualValue
                   ? 'Usando valor digitado manualmente. Zerar o campo para voltar ao cálculo automático.'
                   : resolveAccountDescription(acc.name, group, acc.value, state, dec);
-                const autoDividendosDesc = 'Valor calculado automaticamente a partir dos Dividendos mensais das premissas.';
+                const autoDividendosDesc = 'Valor calculado automaticamente a partir dos Dividendos mensais informados nesta fase.';
                 const badgeLabel = dynamic && hasManualValue ? 'Manual' : 'Automático';
                 const isEmprestimo = group === 'passivoNaoCirculante' && accountIsEmprestimo(acc.name);
                 return `
@@ -1580,6 +1587,22 @@ function renderBalancePremissas(direction = 'none') {
       }
     });
   });
+
+  const wizardDividendosInput = content.querySelector('#wizardDividendosMensais');
+  if (wizardDividendosInput) {
+    wizardDividendosInput.addEventListener('input', (e) => {
+      state.dividendosMensais = Math.max(0, parseAccountingInput(e.target.value));
+      updateAll();
+    });
+    wizardDividendosInput.addEventListener('blur', (e) => {
+      state.dividendosMensais = Math.max(0, parseAccountingInput(e.target.value));
+      e.target.value = formatAccountingInput(state.dividendosMensais);
+      updateAll();
+    });
+    wizardDividendosInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') e.target.blur();
+    });
+  }
 
   content.querySelectorAll('.btn-remove-account').forEach((btn) => {
     btn.addEventListener('click', (e) => {
