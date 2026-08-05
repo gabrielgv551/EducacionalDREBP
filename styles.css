@@ -692,6 +692,21 @@ body {
 .monthly-dre-table tbody tr:nth-child(even) td:first-child { background: rgba(0,0,0,0.03) !important; }
 .monthly-dre-table tbody tr.total td:first-child { background: rgba(2,132,199,0.2) !important; }
 
+.monthly-dre-table thead th.year-var {
+  background: #0f2740;
+  color: #ffffff;
+  font-weight: 700;
+  min-width: 120px;
+}
+
+.monthly-dre-table tbody td.year-var {
+  background: rgba(15, 39, 64, 0.06);
+  font-weight: 700;
+}
+
+.monthly-dre-table tbody tr:nth-child(even) td.year-var { background: rgba(15, 39, 64, 0.1); }
+.monthly-dre-table tbody tr.total td.year-var { background: rgba(2,132,199,0.2) !important; }
+
 .monthly-dre-table thead th {
   background: var(--accent);
   color: #ffffff;

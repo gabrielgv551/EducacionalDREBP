@@ -2400,7 +2400,7 @@ function renderMonthlyDfc() {
   const tbody = document.querySelector('#monthlyDfcTable tbody');
   if (!head || !tbody) return;
 
-  head.innerHTML = `<tr><th>Conta / Descrição</th>${dfc.map((m) => `<th>${m.month}</th>`).join('')}</tr>`;
+  head.innerHTML = `<tr><th>Conta / Descrição</th>${dfc.map((m) => `<th>${m.month}</th>`).join('')}<th class="year-var">Variação do Ano</th></tr>`;
 
   const rowDefs = [
     { label: 'ATIVIDADES OPERACIONAIS', cls: 'section', get: () => null },
@@ -2421,9 +2421,16 @@ function renderMonthlyDfc() {
     { label: '(−) Amortização de Empréstimos', cls: 'sub', key: 'pagamentoEmprestimos' },
     { label: 'Total Caixa Gerado (Aplicado) em Financiamento', cls: 'total', key: 'fcf' },
     { label: 'Variação Líquida do Caixa', cls: 'total', key: 'variacaoCaixa' },
-    { label: 'Saldo Inicial de Caixa', cls: 'sub', key: 'saldoInicial' },
-    { label: 'Saldo Final de Caixa', cls: 'total', key: 'saldoFinal' },
+    { label: 'Saldo Inicial de Caixa', cls: 'sub', key: 'saldoInicial', agg: 'first' },
+    { label: 'Saldo Final de Caixa', cls: 'total', key: 'saldoFinal', agg: 'last' },
   ];
+
+  function aggregateYear(r) {
+    if (r.get) return null;
+    if (r.agg === 'first') return dfc[0][r.key];
+    if (r.agg === 'last') return dfc[dfc.length - 1][r.key];
+    return dfc.reduce((acc, m) => acc + m[r.key], 0);
+  }
 
   tbody.innerHTML = rowDefs
     .map((r) => {
@@ -2433,7 +2440,8 @@ function renderMonthlyDfc() {
           return `<td>${v === null ? '' : formatCurrency(v)}</td>`;
         })
         .join('');
-      return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}</tr>`;
+      const yearValue = r.get ? '' : formatCurrency(aggregateYear(r));
+      return `<tr class="${r.cls}"><td>${r.label}</td>${monthlyValues}<td class="year-var">${yearValue}</td></tr>`;
     })
     .join('');
 }
