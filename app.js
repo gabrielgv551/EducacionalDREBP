@@ -425,6 +425,7 @@ function buildDefaultBalanceAccounts() {
     ],
     patrimonioLiquido: [
       { id: 'capitalSocial', name: 'Capital Social', value: 500_000, type: 'fixed' },
+      { id: 'dividendosDistribuir', name: 'Dividendos a Distribuir', value: 0, type: 'fixed' },
       { id: 'lucrosPrejuizosAcumulados', name: 'Lucros ou prejuízos acumulados', value: 0, type: 'fixed' },
     ],
   };
@@ -533,12 +534,21 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   const totalPassivoNaoCirculanteInformadoMensal = monthlyDRE.map((_, i) =>
     accounts.passivoNaoCirculante.reduce((acc, a) => acc + passivoNaoCirculanteContasMensais[a.id][i], 0)
   );
-  const totalPatrimonioLiquidoInformado = sumResolvedAccounts(accounts, 'patrimonioLiquido', s, dec);
+  const totalPatrimonioLiquidoInformado = sumResolvedAccounts(accounts, 'patrimonioLiquido', s, dec)
+    - (parseFloat(accounts.patrimonioLiquido.find((a) => a.id === 'dividendosDistribuir')?.value) || 0);
   const patrimonioLiquidoContasMensais = {};
   accounts.patrimonioLiquido.forEach((a) => {
     const v = resolveAccountValue(a.name, 'patrimonioLiquido', a.value, s, dec);
     patrimonioLiquidoContasMensais[a.id] = new Array(monthlyDRE.length).fill(v);
   });
+
+  // Dividendos: acumula no PL como conta negativa e reduz o caixa mensalmente via DFC
+  const dividendosAcumuladosMensal = monthlyDRE.map((_, i) =>
+    monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.dividendos, 0)
+  );
+  if (patrimonioLiquidoContasMensais.dividendosDistribuir) {
+    patrimonioLiquidoContasMensais.dividendosDistribuir = dividendosAcumuladosMensal.map((v) => -v);
+  }
 
   // Valores manuais para contas dinâmicas (sobrescrevem o cálculo automático no mês 0)
   const manualContasReceber = sumManualDynamicAccounts(
@@ -611,7 +621,7 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
   }
 
   const lucroLiquidoAcumuladoMensal = monthlyDRE.map((_, i) =>
-    monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido - x.dividendos, 0)
+    monthlyDRE.slice(0, i + 1).reduce((acc, x) => acc + x.lucroLiquido, 0)
   );
 
   const outrosAtivosMensal = new Array(monthlyDRE.length).fill(0);
@@ -630,9 +640,12 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
 
   for (let i = 0; i < monthlyDRE.length; i++) {
     const lucrosAcumulados = lucroLiquidoAcumuladoMensal[i];
+    const dividendosDistribuir = patrimonioLiquidoContasMensais.dividendosDistribuir
+      ? patrimonioLiquidoContasMensais.dividendosDistribuir[i]
+      : 0;
 
     const passivoCirculante = contasPagarMensal[i] + totalPassivoCirculanteNaoDinamico;
-    const patrimonioLiquido = totalPatrimonioLiquidoInformado + lucrosAcumulados;
+    const patrimonioLiquido = totalPatrimonioLiquidoInformado + lucrosAcumulados + dividendosDistribuir;
 
     // Ativo real sem as contas residuais (Outros Ativos / Outros Passivos)
     const ativoReal = caixaMensal[i] + contasReceberMensal[i] + estoqueMensal[i] + outrasAtivoCirculante + totalAtivoNaoCirculanteInformadoMensal[i];
@@ -703,6 +716,7 @@ function calculateBalancoMonthly(s = state, accounts = balanceAccounts) {
     patrimonioLiquidoContas: patrimonioLiquidoContasMensais,
     lucrosAcumulados: lucroLiquidoAcumuladoMensal[i],
     lucrosAcumuladosIniciais: 0,
+    dividendosAcumulados: dividendosAcumuladosMensal[i],
     patrimonioLiquido: patrimonioLiquidoMensal[i],
     totalPassivoPL: totalPassivoPLMensal[i],
     aco: acoMensal[i],
@@ -1315,7 +1329,16 @@ function updateBalanco() {
   const passivoCirculanteDinamicas = balanceAccounts.passivoCirculante.filter((acc) => accountIsDynamic(acc.name, 'passivoCirculante'));
   const passivoCirculanteNaoDinamicas = balanceAccounts.passivoCirculante.filter((acc) => !accountIsDynamic(acc.name, 'passivoCirculante'));
   const passivoNaoCirculanteContas = balanceAccounts.passivoNaoCirculante.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'passivoNaoCirculante', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'passivoNaoCirculante', acc.value, state, dec)]);
-  const patrimonioLiquidoContas = balanceAccounts.patrimonioLiquido.map((acc) => [acc.name, getResolvedAccountValue(balanceAccounts, 'patrimonioLiquido', acc.id, state, dec), acc.id, resolveAccountDescription(acc.name, 'patrimonioLiquido', acc.value, state, dec)]);
+  const patrimonioLiquidoContas = balanceAccounts.patrimonioLiquido.map((acc) => {
+    const isDividendos = acc.id === 'dividendosDistribuir';
+    const value = isDividendos
+      ? b.patrimonioLiquidoContas[acc.id][11]
+      : getResolvedAccountValue(balanceAccounts, 'patrimonioLiquido', acc.id, state, dec);
+    const desc = isDividendos
+      ? 'Total acumulado de dividendos pagos no exercício. Reduz o Patrimônio Líquido e o caixa mensalmente.'
+      : resolveAccountDescription(acc.name, 'patrimonioLiquido', acc.value, state, dec);
+    return [acc.name, value, acc.id, desc];
+  });
 
   const ativoItems = [
     ['Caixa', b.caixa, 'caixa', 'Saldo de caixa de fechamento de dezembro. Evolui pela DFC indireta: Lucro Líquido + Depreciação − variação do capital de giro − dividendos − amortização de empréstimos.'],
@@ -1349,7 +1372,7 @@ function updateBalanco() {
   ];
   const plItems = [
     ...patrimonioLiquidoContas,
-    ['Resultado do Exercício', b.lucrosAcumulados, 'la', 'Lucro Líquido acumulado do exercício.'],
+    ['Resultado do Exercício', b.lucrosAcumulados, 'la', 'Lucro Líquido acumulado do exercício, antes da distribuição de dividendos.'],
   ];
 
   renderBlock('#passivoCirculante .block-items', passivoItems, 'P');
@@ -1489,19 +1512,21 @@ function renderBalancePremissas(direction = 'none') {
                 const dynamic = accountIsDynamic(acc.name, group);
                 const hasManualValue = parseFloat(acc.value || 0) !== 0;
                 const displayValue = dynamic && !hasManualValue ? resolved : acc.value;
+                const isAutoDividendos = acc.id === 'dividendosDistribuir';
                 const dynamicDesc = dynamic && hasManualValue
                   ? 'Usando valor digitado manualmente. Zerar o campo para voltar ao cálculo automático.'
                   : resolveAccountDescription(acc.name, group, acc.value, state, dec);
+                const autoDividendosDesc = 'Valor calculado automaticamente a partir dos Dividendos mensais das premissas.';
                 const badgeLabel = dynamic && hasManualValue ? 'Manual' : 'Automático';
                 const isEmprestimo = group === 'passivoNaoCirculante' && accountIsEmprestimo(acc.name);
                 return `
-        <div class="account-item ${meta.side} ${dynamic ? 'dynamic' : ''} ${dynamic && hasManualValue ? 'manual' : ''}" data-group="${group}" data-index="${index}" title="${dynamic ? dynamicDesc.replace(/"/g, '&quot;') : ''}">
+        <div class="account-item ${meta.side} ${dynamic ? 'dynamic' : ''} ${dynamic && hasManualValue ? 'manual' : ''} ${isAutoDividendos ? 'auto-dividendos' : ''}" data-group="${group}" data-index="${index}" title="${(dynamic || isAutoDividendos) ? (isAutoDividendos ? autoDividendosDesc : dynamicDesc).replace(/"/g, '&quot;') : ''}">
           <div class="account-main">
-            <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" />
-            <input type="text" class="account-value ${dynamic ? 'dynamic-input' : ''}" value="${formatAccountingInput(displayValue)}" data-field="value" inputmode="decimal" placeholder="${dynamic ? 'Saldo inicial R$' : 'R$'}" ${dynamic ? 'data-tooltip="Valor base usado no cálculo automático"' : ''} />
+            <input type="text" class="account-name" value="${acc.name.replace(/"/g, '&quot;')}" data-field="name" placeholder="Nome da conta" ${isAutoDividendos ? 'readonly' : ''} />
+            <input type="text" class="account-value ${dynamic ? 'dynamic-input' : ''}" value="${formatAccountingInput(displayValue)}" data-field="value" inputmode="decimal" placeholder="${dynamic ? 'Saldo inicial R$' : 'R$'}" ${dynamic ? 'data-tooltip="Valor base usado no cálculo automático"' : ''} ${isAutoDividendos ? 'readonly' : ''} />
             ${isEmprestimo ? `<input type="number" class="account-parcelas" value="${acc.parcelas || ''}" data-field="parcelas" min="0" placeholder="Parcelas" title="Número de parcelas para amortização mensal" />` : ''}
             <div class="account-actions">
-              ${dynamic ? `<span class="dynamic-badge ${hasManualValue ? 'manual' : ''}" title="${dynamicDesc.replace(/"/g, '&quot;')}">${hasManualValue ? '✏️ Manual' : '⚡ Automático'}</span>` : ''}
+              ${dynamic || isAutoDividendos ? `<span class="dynamic-badge ${hasManualValue && !isAutoDividendos ? 'manual' : ''}" title="${(isAutoDividendos ? autoDividendosDesc : dynamicDesc).replace(/"/g, '&quot;')}">${isAutoDividendos || !hasManualValue ? '⚡ Automático' : '✏️ Manual'}</span>` : ''}
               ${acc.type === 'custom' ? `<button class="btn-remove-account" title="Remover conta">×</button>` : ''}
             </div>
           </div>
@@ -1854,7 +1879,10 @@ function updateAllFeedbacks() {
     spanBal.textContent = 'O caixa calculado como fechamento ficou negativo. O passivo+PL não cobre os investimentos e o giro sem geração de caixa extra.';
     elBal.className = 'card feedback critical';
   } else {
-    spanBal.textContent = 'Estrutura de balanço equilibrada: Ativo = Passivo + PL. Acompanhe o crescimento do AC em relação ao PC.';
+    const msgDividendos = b.dividendosAcumulados > 0
+      ? ` Dividendos acumulados no exercício: ${formatCurrency(b.dividendosAcumulados)} (reduzem PL e caixa).`
+      : '';
+    spanBal.textContent = `Estrutura de balanço equilibrada: Ativo = Passivo + PL. Acompanhe o crescimento do AC em relação ao PC.${msgDividendos}`;
     elBal.className = 'card feedback';
   }
 
@@ -2047,7 +2075,8 @@ const glossaryTerms = {
   'Passivo Circulante': 'Obrigações de curto prazo: contas a pagar, empréstimos de curto prazo, salários etc.',
   'Passivo Não Circulante': 'Obrigações de longo prazo: empréstimos e financiamentos a pagar após 1 ano.',
   'Patrimônio Líquido': 'Recursos próprios da empresa: capital social, reservas e lucros acumulados.',
-  'Resultado do Exercício': 'Lucro Líquido acumulado no exercício, que aumenta o Patrimônio Líquido.',
+  'Dividendos a Distribuir': 'Parte do lucro distribuída aos sócios. No balanço, acumula o valor pago no exercício e reduz o Patrimônio Líquido.',
+  'Resultado do Exercício': 'Lucro Líquido acumulado no exercício, antes da distribuição de dividendos. Aumenta o Patrimônio Líquido.',
   'Margem Bruta': 'Percentual do lucro bruto em relação à receita líquida. Mede a rentabilidade do produto/serviço.',
   'Margem EBITDA': 'Percentual do EBITDA em relação à receita líquida. Mede a geração de caixa operacional.',
   'Margem Líquida': 'Percentual do lucro líquido em relação à receita líquida. Resultado final da venda.',
